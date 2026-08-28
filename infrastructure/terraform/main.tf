@@ -321,6 +321,8 @@ resource "azuread_application" "ui" {
   display_name = "app-graphrag-ui-${random_string.suffix.result}"
 
   web {
+    redirect_uris = ["https://graphrag-ui.${azurerm_container_app_environment.cae.default_domain}/.auth/login/aad/callback"]
+
     implicit_grant {
       id_token_issuance_enabled = true
     }
