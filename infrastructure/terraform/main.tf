@@ -301,15 +301,15 @@ resource "azurerm_container_app" "ui" {
       memory = "0.5Gi"
 
       env {
-        name  = "VITE_PROXY_TARGET"
-        value = "https://${azurerm_container_app.api.latest_revision_fqdn}"
+        name  = "BACKEND_URL"
+        value = "https://${azurerm_container_app.api.ingress[0].fqdn}"
       }
     }
   }
 
   ingress {
     external_enabled = true
-    target_port      = 5173
+    target_port      = 80
 
     traffic_weight {
       percentage      = 100
