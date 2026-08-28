@@ -1,8 +1,25 @@
+import time
+
 import chromadb
-from openai import OpenAI
+from openai import APIConnectionError, APITimeoutError, NotFoundError, OpenAI, RateLimitError
 
 from src.config import Config
 from src.storage.base import AbstractVectorStore
+
+RETRYABLE = (NotFoundError, APIConnectionError, APITimeoutError, RateLimitError)
+
+
+def _retry_call(fn, *args, attempts: int = 4, delay: float = 1.0, **kwargs):
+    last_exc: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            return fn(*args, **kwargs)
+        except RETRYABLE as exc:
+            last_exc = exc
+            if attempt < attempts - 1:
+                time.sleep(delay * (2**attempt))
+    assert last_exc is not None
+    raise last_exc
 
 
 class ChromaVectorStore(AbstractVectorStore):
@@ -21,7 +38,8 @@ class ChromaVectorStore(AbstractVectorStore):
         )
 
     def _embed(self, texts: list[str]) -> list[list[float]]:
-        response = self._embed_client.embeddings.create(
+        response = _retry_call(
+            self._embed_client.embeddings.create,
             model=self._config.embedding_model,
             input=texts,
         )

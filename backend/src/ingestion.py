@@ -3,9 +3,11 @@ import json
 import logging
 import os
 import re
+import time
 
 import community
 import networkx as nx
+from openai import APIConnectionError, APITimeoutError, NotFoundError, RateLimitError
 
 from src.config import Config
 from src.storage.base import AbstractGraphStore, AbstractVectorStore
@@ -13,6 +15,21 @@ from src.storage.base import AbstractGraphStore, AbstractVectorStore
 CHARS_PER_TOKEN = 4
 
 logger = logging.getLogger(__name__)
+
+RETRYABLE = (NotFoundError, APIConnectionError, APITimeoutError, RateLimitError)
+
+
+def _retry_call(fn, *args, attempts: int = 4, delay: float = 1.0, **kwargs):
+    last_exc: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            return fn(*args, **kwargs)
+        except RETRYABLE as exc:
+            last_exc = exc
+            if attempt < attempts - 1:
+                time.sleep(delay * (2**attempt))
+    assert last_exc is not None
+    raise last_exc
 
 
 def _split_sentences(text: str) -> list[str]:
@@ -62,7 +79,7 @@ def _chat(client, model: str, system: str, user: str, json_mode: bool = False) -
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
         kwargs["temperature"] = 0
-    response = client.chat.completions.create(**kwargs)
+    response = _retry_call(client.chat.completions.create, **kwargs)
     return response.choices[0].message.content or ""
 
 
