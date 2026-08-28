@@ -37,6 +37,8 @@ export interface IngestProgress {
   total_files: number;
   processed_files: number;
   current_file: string;
+  result: IngestStats | null;
+  error: string | null;
 }
 
 export interface GraphStats {

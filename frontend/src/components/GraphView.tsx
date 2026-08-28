@@ -37,6 +37,7 @@ export default function GraphView({ subgraph, selectedNodeId, onNodeClick }: Gra
   const fittedRef = useRef(false);
   const { mode, systemMode } = useColorScheme();
   const isDark = mode === "dark" || (mode === "system" && systemMode === "dark");
+  const linkColor = isDark ? "#c9d1d9" : "#9e9e9e";
   const height = 560;
   const hasData = subgraph.nodes.length > 0;
 
@@ -47,6 +48,7 @@ export default function GraphView({ subgraph, selectedNodeId, onNodeClick }: Gra
         source: edge.source,
         target: edge.target,
         relation: edge.relation ?? "",
+        color: linkColor,
         ...edge,
       })),
     }),
@@ -88,7 +90,8 @@ export default function GraphView({ subgraph, selectedNodeId, onNodeClick }: Gra
           enableNodeDrag
           nodeColor={(node) => (selectedNodeId === node.id ? "#ffeb3b" : colorForType(node.type as string | undefined))}
           nodeLabel={(node) => node.id ?? ""}
-          linkColor={isDark ? "#c9d1d9" : "#9e9e9e"}
+          linkColor={(link) => (link.color as string | undefined) ?? linkColor}
+          linkDirectionalArrowColor={(link) => (link.color as string | undefined) ?? linkColor}
           linkDirectionalArrowLength={4}
           linkDirectionalArrowRelPos={0.9}
           linkLabel={(link) => (link.relation as string | undefined) ?? ""}

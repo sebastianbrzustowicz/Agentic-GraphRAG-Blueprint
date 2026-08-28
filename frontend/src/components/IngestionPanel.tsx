@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Alert from "@mui/joy/Alert";
 import Box from "@mui/joy/Box";
 import Button from "@mui/joy/Button";
@@ -26,6 +26,7 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<GraphStats | null>(null);
   const [progress, setProgress] = useState<IngestProgress | null>(null);
+  const sawRunning = useRef(false);
 
   const busy = phase !== "idle";
 
@@ -45,6 +46,9 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
 
   // While ingestion is running, poll /stats and /progress a few times per
   // second so the numbers update live and per-file progress is visible.
+  // /ingest is async: the HTTP call returns immediately and the backend
+  // processes in the background; this poll also detects completion
+  // (running -> false) and surfaces the final result or error.
   useEffect(() => {
     if (phase !== "ingesting") {
       return;
@@ -55,13 +59,30 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
         setStats(current);
         onStatsChange(current);
         setProgress(p);
-        if (p.running && p.total_files > 0) {
-          const done = p.processed_files;
-          const remaining = p.total_files - done;
-          const currentLine = p.current_file ? ` · now: ${p.current_file}` : "";
-          setStatus(
-            `Processing ${done + 1}/${p.total_files} — ${done} file(s) done, ${remaining} left${currentLine}`
-          );
+        if (p.running) {
+          sawRunning.current = true;
+          if (p.total_files > 0) {
+            const done = p.processed_files;
+            const currentLine = p.current_file ? ` · now: ${p.current_file}` : "";
+            setStatus(`Processing ${done + 1}/${p.total_files} — ${done} file(s) done${currentLine}`);
+          }
+        } else if (sawRunning.current) {
+          // ingestion finished (or failed)
+          sawRunning.current = false;
+          setPhase("idle");
+          setProgress(null);
+          if (p.error) {
+            setError(p.error);
+            setStatus(null);
+          } else if (p.result) {
+            const r = p.result;
+            setStatus(
+              `Ingestion finished: ${r.entities} entities, ${r.relations} relations, ${r.chunks} chunks, ${r.communities} communities.`
+            );
+          } else {
+            setStatus("Ingestion finished.");
+          }
+          await refreshStats();
         }
       } catch {
         // transient poll failure: keep the previous state
@@ -77,6 +98,7 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
     }
     setError(null);
     setProgress(null);
+    sawRunning.current = false;
 
     if (files.length > 0) {
       setPhase("uploading");
@@ -95,17 +117,11 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
     setPhase("ingesting");
     setStatus("Ingesting… this can take several minutes.");
     try {
-      const result = await runIngest();
-      setStatus(
-        `Ingestion finished: ${result.entities} entities, ${result.relations} relations, ${result.chunks} chunks, ${result.communities} communities.`
-      );
-      await refreshStats();
+      await runIngest();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ingestion failed");
+      setError(err instanceof Error ? err.message : "Ingestion failed to start");
       setStatus(null);
-    } finally {
       setPhase("idle");
-      setProgress(null);
     }
   };
 

@@ -1,5 +1,6 @@
 import logging
 import os
+import threading
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +11,12 @@ logger = logging.getLogger("graphrag")
 
 from src.config import Config
 from src.ingestion import run_ingestion
-from src.progress import snapshot as progress_snapshot, stop as progress_stop
+from src.progress import (
+    set_error as progress_set_error,
+    set_result as progress_set_result,
+    snapshot as progress_snapshot,
+    stop as progress_stop,
+)
 from src.search import global_search, local_search
 from src.storage.graph_store import NetworkXGraphStore
 from src.storage.vector_store import ChromaVectorStore
@@ -69,8 +75,20 @@ async def upload(file: UploadFile = File(...)) -> dict:
 
 @app.post("/ingest")
 def ingest() -> dict:
+    if progress_snapshot()["running"]:
+        raise HTTPException(status_code=409, detail="Ingestion is already running")
+    thread = threading.Thread(target=_run_ingestion_async, daemon=True)
+    thread.start()
+    return {"started": True}
+
+
+def _run_ingestion_async() -> None:
     try:
-        return run_ingestion(config, graph_store, vector_store)
+        stats = run_ingestion(config, graph_store, vector_store)
+        progress_set_result(stats)
+    except Exception as exc:
+        logger.exception("ingestion failed")
+        progress_set_error(str(exc))
     finally:
         progress_stop()
 
