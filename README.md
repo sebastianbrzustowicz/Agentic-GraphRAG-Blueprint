@@ -160,3 +160,11 @@ npm run dev
 ### Repository Pattern (migration path)
 
 `backend/src/storage/base.py` defines `AbstractGraphStore` and `AbstractVectorStore`. `NetworkXGraphStore` (→ Azure Cosmos DB Gremlin) and `ChromaVectorStore` (→ Azure AI Search) implement them; `ingestion.py` and `search.py` depend only on the abstractions, so the Azure migration is a drop-in replacement of the two store classes.
+
+## License
+
+Agentic-GraphRAG-Blueprint is released under the MIT license.
+
+## Author
+
+Sebastian Brzustowicz &lt;Se.Brzustowicz@gmail.com&gt;
