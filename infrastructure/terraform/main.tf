@@ -319,6 +319,12 @@ resource "azurerm_container_app" "api" {
 
 resource "azuread_application" "ui" {
   display_name = "app-graphrag-ui-${random_string.suffix.result}"
+
+  web {
+    implicit_grant {
+      id_token_issuance_enabled = true
+    }
+  }
 }
 
 resource "azuread_service_principal" "ui" {
