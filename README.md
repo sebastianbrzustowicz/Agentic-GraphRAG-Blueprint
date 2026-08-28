@@ -2,7 +2,7 @@
 An enterprise-grade reference architecture for an Agentic GraphRAG (Knowledge Graph + Vector Search) solution deployed on Microsoft Azure using Terraform (IaC), LangGraph, FastAPI, and Streamlit/React.
 
 <div align="center">
-  <img src="images/app_light.png" alt="Agentic GraphRAG application UI" width="800px" style="border-radius: 8px; height: auto;" />
+  <img src="images/app_dark.png" alt="Agentic GraphRAG application UI" width="800px" style="border-radius: 8px; height: auto;" />
   <p><em>The Agentic GraphRAG application UI</em></p>
 </div>
 
@@ -114,7 +114,7 @@ flowchart TD
     classDef cheap fill:#e8f5e9,stroke:#2e7d32,stroke-width:1.5px,color:#1b5e20;
     classDef expensive fill:#fdecea,stroke:#c62828,stroke-width:1.5px,color:#b71c1c;
 ```
-## Local Prototype — Running the App
+## Local Prototype - Running the App
 
 The repository contains a runnable prototype: `backend/` (FastAPI + NetworkX + ChromaDB + OpenAI) and `frontend/` (React + Vite + MUI Joy + react-force-graph-2d).
 
@@ -122,7 +122,7 @@ The repository contains a runnable prototype: `backend/` (FastAPI + NetworkX + C
 - `OPENAI_API_KEY` present in the root `.env` file (models used: `gpt-4o-mini`, `text-embedding-3-small`).
 - Input documents in `data/` (TXT files). The knowledge graph persists in `data/graph.gpickle`, the vector index in `.chroma_db/`.
 
-### Option A — Docker Compose (recommended)
+### Option A - Docker Compose (recommended)
 
 ```bash
 docker compose up --build
@@ -133,7 +133,7 @@ docker compose up --build
 - The frontend talks to the backend through the Vite dev proxy (`/api` → `http://backend:8000`) on the internal Docker network `graphrag-net`.
 - Volumes persist `./data` and `./.chroma_db` between container restarts.
 
-### Option B — Local development
+### Option B - Local development
 
 Backend (from the repository root):
 
@@ -165,6 +165,26 @@ npm run dev
 ### Repository Pattern (migration path)
 
 `backend/src/storage/base.py` defines `AbstractGraphStore` and `AbstractVectorStore`. `NetworkXGraphStore` (→ Azure Cosmos DB Gremlin) and `ChromaVectorStore` (→ Azure AI Search) implement them; `ingestion.py` and `search.py` depend only on the abstractions, so the Azure migration is a drop-in replacement of the two store classes.
+
+## Citation
+
+If this repository has helped you during your research, feel free to cite it:
+
+**APA Style**
+> Brzustowicz, S. (2026). Agentic GraphRAG Blueprint: Enterprise agentic GraphRAG infrastructure with knowledge graphs and vector search (Version 1.0.0) [Source code]. https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint
+
+**BibTeX**
+```bibtex
+@software{brzustowicz_agentic_graphrag_blueprint_2026,
+  author = {Sebastian Brzustowicz},
+  title = {Agentic GraphRAG Blueprint: Enterprise agentic GraphRAG infrastructure with knowledge graphs and vector search},
+  url = {https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint},
+  version = {1.0.0},
+  year = {2026}
+}
+```
+> [!TIP]
+> You can also use the **"Cite this repository"** button in the sidebar to automatically copy these citations or download the raw metadata file.
 
 ## License
 
