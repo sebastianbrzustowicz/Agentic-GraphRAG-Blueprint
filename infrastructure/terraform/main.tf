@@ -206,6 +206,15 @@ resource "azurerm_storage_share" "data" {
   quota              = 5
 }
 
+resource "azurerm_container_app_environment_storage" "data" {
+  name                         = "graphrag-data"
+  container_app_environment_id = azurerm_container_app_environment.cae.id
+  account_name                 = azurerm_storage_account.sa.name
+  share_name                   = azurerm_storage_share.data.name
+  access_key                   = azurerm_storage_account.sa.primary_access_key
+  access_mode                  = "ReadWrite"
+}
+
 resource "azurerm_container_app" "api" {
   name                         = "graphrag-agent-api"
   container_app_environment_id = azurerm_container_app_environment.cae.id
@@ -239,7 +248,7 @@ resource "azurerm_container_app" "api" {
     volume {
       name         = "data"
       storage_type = "AzureFile"
-      storage_name = azurerm_storage_share.data.name
+      storage_name = azurerm_container_app_environment_storage.data.name
     }
 
     container {
