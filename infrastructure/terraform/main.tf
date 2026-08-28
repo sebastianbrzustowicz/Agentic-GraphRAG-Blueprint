@@ -322,7 +322,7 @@ resource "azuread_service_principal" "ui" {
 }
 
 resource "azuread_application_password" "ui" {
-  application_object_id = azuread_application.ui.object_id
+  application_id = azuread_application.ui.id
 }
 
 resource "azuread_app_role_assignment" "ui" {
