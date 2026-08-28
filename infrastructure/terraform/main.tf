@@ -106,7 +106,7 @@ resource "azurerm_search_service" "search" {
 }
 
 resource "azurerm_cosmosdb_account" "cosmos" {
-  name                = "cosmos-graphrag-seb-${random_string.suffix.result}"
+  name                = "cosmos-graphrag-sql-seb-${random_string.suffix.result}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   offer_type          = "Standard"
