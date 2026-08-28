@@ -1,0 +1,113 @@
+name: Infrastructure and App CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    name: Terraform Plan & Apply
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infrastructure/terraform
+    outputs:
+      acr_login_server: ${{ steps.tf_outputs.outputs.acr_login_server }}
+      acr_name: ${{ steps.tf_outputs.outputs.acr_name }}
+      container_app_api_name: ${{ steps.tf_outputs.outputs.container_app_api_name }}
+      container_app_ui_name: ${{ steps.tf_outputs.outputs.container_app_ui_name }}
+      resource_group_name: ${{ steps.tf_outputs.outputs.resource_group_name }}
+
+    env:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.0
+
+      - name: Terraform Init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.TF_STATE_RG }}" \
+            -backend-config="storage_account_name=${{ secrets.TF_STATE_SA }}" \
+            -backend-config="container_name=tfstate" \
+            -backend-config="key=terraform.tfstate"
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve
+
+      - name: Export Terraform Outputs
+        id: tf_outputs
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: |
+          echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
+          echo "acr_name=$(terraform output -raw acr_name)" >> $GITHUB_OUTPUT
+          echo "container_app_api_name=$(terraform output -raw container_app_api_name)" >> $GITHUB_OUTPUT
+          echo "container_app_ui_name=$(terraform output -raw container_app_ui_name)" >> $GITHUB_OUTPUT
+          echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Build & Deploy Application
+    needs: terraform
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: '{"clientId":"${{ secrets.ARM_CLIENT_ID }}","clientSecret":"${{ secrets.ARM_CLIENT_SECRET }}","subscriptionId":"${{ secrets.ARM_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.ARM_TENANT_ID }}"}'
+
+      - name: Log in to ACR
+        run: |
+          az acr login --name ${{ needs.terraform.outputs.acr_name }}
+
+      - name: Build and Push Backend Image
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          ACR_SERVER=${{ needs.terraform.outputs.acr_login_server }}
+          docker build -t $ACR_SERVER/graphrag-agent-api:$IMAGE_TAG -t $ACR_SERVER/graphrag-agent-api:latest ./backend
+          docker push $ACR_SERVER/graphrag-agent-api:$IMAGE_TAG
+          docker push $ACR_SERVER/graphrag-agent-api:latest
+
+      - name: Build and Push Frontend Image
+        run: |
+          IMAGE_TAG=${{ github.sha }}
+          ACR_SERVER=${{ needs.terraform.outputs.acr_login_server }}
+          docker build -t $ACR_SERVER/graphrag-ui:$IMAGE_TAG -t $ACR_SERVER/graphrag-ui:latest ./frontend
+          docker push $ACR_SERVER/graphrag-ui:$IMAGE_TAG
+          docker push $ACR_SERVER/graphrag-ui:latest
+
+      - name: Deploy Backend to Azure Container App
+        run: |
+          az containerapp update \
+            --name ${{ needs.terraform.outputs.container_app_api_name }} \
+            --resource-group ${{ needs.terraform.outputs.resource_group_name }} \
+            --image ${{ needs.terraform.outputs.acr_login_server }}/graphrag-agent-api:${{ github.sha }}
+
+      - name: Deploy Frontend to Azure Container App
+        run: |
+          az containerapp update \
+            --name ${{ needs.terraform.outputs.container_app_ui_name }} \
+            --resource-group ${{ needs.terraform.outputs.resource_group_name }} \
+            --image ${{ needs.terraform.outputs.acr_login_server }}/graphrag-ui:${{ github.sha }}
+
