@@ -1,5 +1,10 @@
 data "azurerm_client_config" "current" {}
 
+variable "graphrag_admin_object_id" {
+  type    = string
+  default = "8d278e76-57a8-4cb7-ac14-e45bd6679e00"
+}
+
 resource "random_string" "suffix" {
   length  = 6
   special = false
@@ -327,7 +332,7 @@ resource "azuread_application_password" "ui" {
 
 resource "azuread_app_role_assignment" "ui" {
   app_role_id         = "00000000-0000-0000-0000-000000000000"
-  principal_object_id = data.azurerm_client_config.current.object_id
+  principal_object_id = var.graphrag_admin_object_id
   resource_object_id  = azuread_service_principal.ui.object_id
 }
 
