@@ -40,7 +40,7 @@ flowchart TD
         end
 
         subgraph Databases ["Databases & Search (Graph + Vector)"]
-            GraphDB[("Graph DB - Cosmos DB Gremlin / Neo4j<br/><i>(Nodes, Edges & Leiden Clusters)</i>")]
+            GraphDB[("Graph DB - Cosmos DB Gremlin / Neo4j<br/><i>(Nodes, Edges & Louvain Clusters)</i>")]
             Search["Azure AI Search<br/><i>(Vector Index of Chunks & Reports)</i>"]
             StateDB[("Azure Cosmos DB SQL<br/><i>(LangGraph Agent State & History)</i>")]
         end
@@ -63,7 +63,7 @@ flowchart TD
 ```
 
 ## Core Features & Incremental Ingestion
-- Incremental Document Upload: Supports delta ingestion. New documents undergo entity/relationship extraction without re-processing existing files. The system merges new nodes/edges into the Knowledge Graph, runs Leiden re-clustering in memory, and triggers LLM Community Summarization only for affected communities, minimizing API token costs.
+- Incremental Document Upload: Supports delta ingestion. New documents undergo entity/relationship extraction without re-processing existing files. The system merges new nodes/edges into the Knowledge Graph, runs Louvain re-clustering in memory, and triggers LLM Community Summarization only for affected communities, minimizing API token costs.
 
 - Agentic Routing (LangGraph): Dynamically chooses between Local Search (entity-level traversing for detailed facts) and Global Search (hierarchical Map-Reduce summarization for cross-document synthesis).
 
@@ -75,39 +75,39 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph Ingestion ["1. INGESTION PROCESS (Database Creation & Updates)"]
-        A[Source PDF / TXT Documents] --> B["1. Text Chunking<br/>⚙️ Code / Static (Cheap)"]
-        B --> C["2. Entity & Relationship Extraction<br/>🤖 LLM Model (Very Expensive)"]
-        C --> D["3. Knowledge Graph Construction<br/>💾 Graph DB / Code (Cheap)"]
-        D --> E["4. Leiden Clustering<br/>🧮 Graph Algorithm / Static (Cheap)"]
-        E --> F["5. Community Reports Generation<br/>🤖 LLM Model (Very Expensive)"]
-        F --> G["6. Vectorization of Reports & Chunks<br/>📐 Vector / Embedding Model (Cheap)"]
+    subgraph Ingestion ["1. Ingestion Process (Database Creation & Updates)"]
+        A["Source Documents<br/>(TXT files in data/)"] --> B["1. Text Chunking<br/>code / static (cheap)"]
+        B --> C["2. Entity & Relationship Extraction<br/>LLM (expensive)"]
+        C --> D["3. Knowledge Graph Construction<br/>graph store, NetworkX (cheap)"]
+        D --> E["4. Community Detection (Louvain)<br/>graph algorithm, in-memory (cheap)"]
+        E --> F["5. Community Reports Generation<br/>LLM (expensive)"]
+        F --> G["6. Vectorization of Chunks, Entities & Reports<br/>embedding model (cheap)"]
     end
 
     class B,D,E,G cheap;
     class C,F expensive;
 
-    classDef cheap fill:#1e4620,stroke:#4caf50,color:#fff,stroke-width:2px;
-    classDef expensive fill:#5c0606,stroke:#ef5350,color:#fff,stroke-width:2px;
+    classDef cheap fill:#e8f5e9,stroke:#2e7d32,stroke-width:1.5px,color:#1b5e20;
+    classDef expensive fill:#fdecea,stroke:#c62828,stroke-width:1.5px,color:#b71c1c;
 ```
 
 ### 2. Query Process (User Interaction)
 
 ```mermaid
 flowchart TD
-    subgraph Query ["2. QUERY PROCESS (User Interaction)"]
-        H[User Query] --> I["1. Intent Classifier / Router<br/>🤖 LLM Model - short prompt (Cheap)"]
-        I -->|Detailed Query| J["2a. Local Search<br/>📐 Embedding + 💾 DB + 🤖 1x LLM (Cheap)"]
-        I -->|Synthesized Query| K["2b. Global Search<br/>💾 DB + 🤖 Map-Reduce LLM Cascade (Expensive)"]
-        J --> L[Final Answer]
+    subgraph Query ["2. Query Process (User Interaction)"]
+        H["User Query"] --> I["Search Mode<br/>(client-selected: local | global)"]
+        I -->|"mode = local"| J["2a. Local Search<br/>vector search → subgraph traversal → 1× LLM synthesis (cheap)"]
+        I -->|"mode = global"| K["2b. Global Search<br/>vector search → LLM map-reduce cascade (expensive)"]
+        J --> L["Final Answer<br/>+ subgraph JSON"]
         K --> L
     end
 
     class I,J cheap;
     class K expensive;
 
-    classDef cheap fill:#1e4620,stroke:#4caf50,color:#fff,stroke-width:2px;
-    classDef expensive fill:#5c0606,stroke:#ef5350,color:#fff,stroke-width:2px;
+    classDef cheap fill:#e8f5e9,stroke:#2e7d32,stroke-width:1.5px,color:#1b5e20;
+    classDef expensive fill:#fdecea,stroke:#c62828,stroke-width:1.5px,color:#b71c1c;
 ```
 ## Local Prototype — Running the App
 
