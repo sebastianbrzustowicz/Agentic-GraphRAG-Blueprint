@@ -289,7 +289,7 @@ resource "azurerm_container_app" "api" {
 
       env {
         name  = "CHROMA_DIR"
-        value = "/app/data/.chroma_db"
+        value = "/app/.chroma_db"
       }
 
       volume_mounts {
