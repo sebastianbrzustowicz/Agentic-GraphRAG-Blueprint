@@ -1,6 +1,11 @@
 ## Enterprise Agentic GraphRAG Infrastructure
 An enterprise-grade reference architecture for an Agentic GraphRAG (Knowledge Graph + Vector Search) solution deployed on Microsoft Azure using Terraform (IaC), LangGraph, FastAPI, and Streamlit/React.
 
+<div align="center">
+  <img src="images/app_light.png" alt="Agentic GraphRAG application UI" width="800px" style="border-radius: 8px; height: auto;" />
+  <p><em>The Agentic GraphRAG application UI</em></p>
+</div>
+
 ## Architecture (C4 Model)
 ### Level 1: System Context Diagram
 High-level overview of user interaction with the Enterprise Agentic GraphRAG system.
