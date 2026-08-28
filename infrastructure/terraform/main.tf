@@ -54,12 +54,13 @@ resource "azurerm_cognitive_account" "openai" {
 }
 
 resource "azurerm_cognitive_deployment" "gpt" {
-  name                 = "gpt-4o-mini"
+  name                 = "gpt-4.1-mini"
   cognitive_account_id = azurerm_cognitive_account.openai.id
 
   model {
-    format = "OpenAI"
-    name   = "gpt-4o-mini"
+    format  = "OpenAI"
+    name    = "gpt-4.1-mini"
+    version = "2025-04-14"
   }
 
   sku {
@@ -111,10 +112,6 @@ resource "azurerm_cosmosdb_account" "cosmos" {
   offer_type          = "Standard"
   kind                = "GlobalDocumentDB"
 
-  capabilities {
-    name = "EnableGremlin"
-  }
-
   consistency_policy {
     consistency_level = "Session"
   }
@@ -147,16 +144,37 @@ resource "azurerm_cosmosdb_sql_container" "chat_history" {
   }
 }
 
+resource "azurerm_cosmosdb_account" "cosmos_graph" {
+  name                = "cosmos-graphrag-graph-seb-${random_string.suffix.result}"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  offer_type          = "Standard"
+  kind                = "GlobalDocumentDB"
+
+  capabilities {
+    name = "EnableGremlin"
+  }
+
+  consistency_policy {
+    consistency_level = "Session"
+  }
+
+  geo_location {
+    location          = azurerm_resource_group.rg.location
+    failover_priority = 0
+  }
+}
+
 resource "azurerm_cosmosdb_gremlin_database" "graph" {
   name                = "graphrag-graph"
   resource_group_name = azurerm_resource_group.rg.name
-  account_name        = azurerm_cosmosdb_account.cosmos.name
+  account_name        = azurerm_cosmosdb_account.cosmos_graph.name
 }
 
 resource "azurerm_cosmosdb_gremlin_graph" "graph" {
   name                = "graphrag-graph"
   resource_group_name = azurerm_resource_group.rg.name
-  account_name        = azurerm_cosmosdb_account.cosmos.name
+  account_name        = azurerm_cosmosdb_account.cosmos_graph.name
   database_name       = azurerm_cosmosdb_gremlin_database.graph.name
   partition_key_path  = "/partitionKey"
   throughput          = 400
@@ -230,7 +248,7 @@ resource "azurerm_container_app" "api" {
 
       env {
         name  = "LLM_MODEL"
-        value = "gpt-4o-mini"
+        value = "gpt-4.1-mini"
       }
 
       env {
@@ -343,6 +361,22 @@ resource "azurerm_key_vault_secret" "cosmos_key" {
 resource "azurerm_key_vault_secret" "cosmos_endpoint" {
   name         = "cosmos-endpoint"
   value        = azurerm_cosmosdb_account.cosmos.endpoint
+  key_vault_id = azurerm_key_vault.kv.id
+
+  depends_on = [azurerm_key_vault_access_policy.current]
+}
+
+resource "azurerm_key_vault_secret" "graph_key" {
+  name         = "graph-key"
+  value        = azurerm_cosmosdb_account.cosmos_graph.primary_key
+  key_vault_id = azurerm_key_vault.kv.id
+
+  depends_on = [azurerm_key_vault_access_policy.current]
+}
+
+resource "azurerm_key_vault_secret" "graph_endpoint" {
+  name         = "graph-endpoint"
+  value        = azurerm_cosmosdb_account.cosmos_graph.endpoint
   key_vault_id = azurerm_key_vault.kv.id
 
   depends_on = [azurerm_key_vault_access_policy.current]
