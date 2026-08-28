@@ -1,8 +1,12 @@
+import logging
 import os
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger("graphrag")
 
 from src.config import Config
 from src.ingestion import run_ingestion
@@ -58,6 +62,7 @@ async def upload(file: UploadFile = File(...)) -> dict:
         raise HTTPException(status_code=400, detail=f"Uploaded file '{filename}' is empty")
     with open(target, "wb") as handle:
         handle.write(data)
+    logger.info("uploaded %s (%d bytes) -> %s", filename, len(data), target)
     return {"filename": filename, "path": target}
 
 

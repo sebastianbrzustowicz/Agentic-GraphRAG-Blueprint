@@ -118,6 +118,7 @@ def run_ingestion(
     graph_store.reset()
     vector_store.reset()
     files = sorted(glob.glob(os.path.join(config.data_dir, "*.txt")))
+    logger.info("ingestion started: %d file(s) in %s", len(files), config.data_dir)
     client = config.client()
     stats = {
         "files": len(files),
@@ -133,7 +134,9 @@ def run_ingestion(
             text = handle.read()
         chunks = chunk_text(text, config.chunk_size, config.chunk_overlap)
         if not chunks:
-            logger.warning("file %s produced no chunks (size=%d bytes)", path, os.path.getsize(path))
+            logger.warning("file %s produced no chunks (size=%d bytes, read=%d chars)", path, os.path.getsize(path), len(text))
+        else:
+            logger.info("chunked %s into %d chunks", path, len(chunks))
         for chunk_index, chunk in enumerate(chunks):
             try:
                 entities, relations = extract_graph(client, config.llm_model, chunk)
