@@ -1,0 +1,31 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: graphrag-backend
+    ports:
+      - "8000:8000"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./.chroma_db:/app/.chroma_db
+    networks:
+      - graphrag-net
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: graphrag-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_PROXY_TARGET: http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - graphrag-net
+
+networks:
+  graphrag-net:
+    driver: bridge

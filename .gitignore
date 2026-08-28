@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.chroma_db/
+data/graph.gpickle
+node_modules/
+dist/
+.*/
+!.github/
