@@ -264,7 +264,7 @@ resource "azurerm_container_app" "api" {
 
       env {
         name  = "OPENAI_BASE_URL"
-        value = "https://${azurerm_cognitive_account.openai.name}.openai.azure.com/openai/v1"
+        value = "${azurerm_cognitive_account.openai.endpoint}openai/v1"
       }
 
       env {
