@@ -1,5 +1,6 @@
 import glob
 import json
+import logging
 import os
 import re
 
@@ -10,6 +11,8 @@ from src.config import Config
 from src.storage.base import AbstractGraphStore, AbstractVectorStore
 
 CHARS_PER_TOKEN = 4
+
+logger = logging.getLogger(__name__)
 
 
 def _split_sentences(text: str) -> list[str]:
@@ -129,10 +132,13 @@ def run_ingestion(
         with open(path, encoding="utf-8") as handle:
             text = handle.read()
         chunks = chunk_text(text, config.chunk_size, config.chunk_overlap)
+        if not chunks:
+            logger.warning("file %s produced no chunks (size=%d bytes)", path, os.path.getsize(path))
         for chunk_index, chunk in enumerate(chunks):
             try:
                 entities, relations = extract_graph(client, config.llm_model, chunk)
-            except Exception:
+            except Exception as exc:
+                logger.warning("entity extraction failed for chunk %d of %s: %s", chunk_index, path, exc)
                 continue
             chunk_entities = []
             for entity in entities:
@@ -212,7 +218,8 @@ def run_ingestion(
                 entity_lines,
                 relation_lines,
             )
-        except Exception:
+        except Exception as exc:
+            logger.warning("community report generation failed for community %d: %s", community_id, exc)
             continue
         vector_store.add_documents(
             [f"report-{community_id}"],

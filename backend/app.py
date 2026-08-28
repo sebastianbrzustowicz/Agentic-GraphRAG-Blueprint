@@ -1,6 +1,6 @@
 import os
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -13,6 +13,8 @@ from src.storage.vector_store import ChromaVectorStore
 config = Config()
 graph_store = NetworkXGraphStore()
 vector_store = ChromaVectorStore(config)
+
+os.makedirs(config.data_dir, exist_ok=True)
 
 if os.path.exists(config.graph_path):
     graph_store.load(config.graph_path)
@@ -49,9 +51,13 @@ def stats() -> dict:
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)) -> dict:
     filename = os.path.basename(file.filename or "upload.txt")
+    os.makedirs(config.data_dir, exist_ok=True)
     target = os.path.join(config.data_dir, filename)
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail=f"Uploaded file '{filename}' is empty")
     with open(target, "wb") as handle:
-        handle.write(await file.read())
+        handle.write(data)
     return {"filename": filename, "path": target}
 
 

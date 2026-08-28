@@ -200,6 +200,12 @@ resource "azurerm_storage_container" "docs" {
   container_access_type = "private"
 }
 
+resource "azurerm_storage_share" "data" {
+  name               = "graphrag-data"
+  storage_account_id = azurerm_storage_account.sa.id
+  quota              = 5
+}
+
 resource "azurerm_container_app" "api" {
   name                         = "graphrag-agent-api"
   container_app_environment_id = azurerm_container_app_environment.cae.id
@@ -230,6 +236,12 @@ resource "azurerm_container_app" "api" {
   }
 
   template {
+    volume {
+      name         = "data"
+      storage_type = "AzureFile"
+      storage_name = azurerm_storage_share.data.name
+    }
+
     container {
       name   = "graphrag-agent-api"
       image  = "mcr.microsoft.com/azuredocs/aci-helloworld:latest"
@@ -254,6 +266,26 @@ resource "azurerm_container_app" "api" {
       env {
         name  = "EMBEDDING_MODEL"
         value = "text-embedding-3-small"
+      }
+
+      env {
+        name  = "DATA_DIR"
+        value = "/app/data"
+      }
+
+      env {
+        name  = "GRAPH_PATH"
+        value = "/app/data/graph.gpickle"
+      }
+
+      env {
+        name  = "CHROMA_DIR"
+        value = "/app/data/.chroma_db"
+      }
+
+      volume_mounts {
+        name = "data"
+        path = "/app/data"
       }
     }
   }
