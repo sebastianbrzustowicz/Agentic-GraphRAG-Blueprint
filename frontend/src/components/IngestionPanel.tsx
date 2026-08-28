@@ -10,20 +10,24 @@ import ListItem from "@mui/joy/ListItem";
 import Stack from "@mui/joy/Stack";
 import Typography from "@mui/joy/Typography";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import { fetchStats, runIngest, uploadFiles } from "../api";
-import type { GraphStats } from "../types";
+import { fetchProgress, fetchStats, runIngest, uploadFiles } from "../api";
+import type { GraphStats, IngestProgress } from "../types";
 
 interface IngestionPanelProps {
   onStatsChange: (stats: GraphStats) => void;
 }
 
+type Phase = "idle" | "uploading" | "ingesting";
+
 export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
   const [files, setFiles] = useState<File[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<Phase>("idle");
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<GraphStats | null>(null);
+  const [progress, setProgress] = useState<IngestProgress | null>(null);
+
+  const busy = phase !== "idle";
 
   const refreshStats = async () => {
     try {
@@ -39,31 +43,56 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
     refreshStats().catch(() => undefined);
   }, []);
 
-  const upload = async () => {
-    if (!files.length || busy) {
+  // While ingestion is running, poll /stats and /progress a few times per
+  // second so the numbers update live and per-file progress is visible.
+  useEffect(() => {
+    if (phase !== "ingesting") {
       return;
     }
-    setBusy(true);
-    setError(null);
-    setStatus("Uploading files…");
-    try {
-      const names = await uploadFiles(files);
-      setStatus(`Uploaded: ${names.join(", ")}. Run ingestion to index them.`);
-      setFiles([]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-      setStatus(null);
-    } finally {
-      setBusy(false);
-    }
-  };
+    const poll = async () => {
+      try {
+        const [current, p] = await Promise.all([fetchStats(), fetchProgress()]);
+        setStats(current);
+        onStatsChange(current);
+        setProgress(p);
+        if (p.running && p.total_files > 0) {
+          const done = p.processed_files;
+          const remaining = p.total_files - done;
+          const currentLine = p.current_file ? ` · now: ${p.current_file}` : "";
+          setStatus(
+            `Processing ${done + 1}/${p.total_files} — ${done} file(s) done, ${remaining} left${currentLine}`
+          );
+        }
+      } catch {
+        // transient poll failure: keep the previous state
+      }
+    };
+    const timer = setInterval(poll, 3000);
+    return () => clearInterval(timer);
+  }, [phase, onStatsChange]);
 
-  const ingest = async () => {
+  const process = async () => {
     if (busy) {
       return;
     }
-    setBusy(true);
     setError(null);
+    setProgress(null);
+
+    if (files.length > 0) {
+      setPhase("uploading");
+      setStatus(`Uploading ${files.length} file(s)…`);
+      try {
+        await uploadFiles(files);
+        setFiles([]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Upload failed");
+        setStatus(null);
+        setPhase("idle");
+        return;
+      }
+    }
+
+    setPhase("ingesting");
     setStatus("Ingesting… this can take several minutes.");
     try {
       const result = await runIngest();
@@ -75,7 +104,8 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
       setError(err instanceof Error ? err.message : "Ingestion failed");
       setStatus(null);
     } finally {
-      setBusy(false);
+      setPhase("idle");
+      setProgress(null);
     }
   };
 
@@ -85,7 +115,12 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
         <Typography level="title-md" sx={{ mb: 2 }}>
           Ingestion &amp; Data
         </Typography>
-        <Button component="label" variant="outlined" color="neutral" startDecorator={<CloudUploadIcon />}>
+        <Button
+          component="label"
+          variant="outlined"
+          color="neutral"
+          startDecorator={<CloudUploadIcon />}
+        >
           Select .txt files
           <input
             type="file"
@@ -102,14 +137,15 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
             ))}
           </List>
         ) : null}
-        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-          <Button onClick={upload} disabled={!files.length || busy} variant="soft">
-            Upload
-          </Button>
-          <Button onClick={ingest} loading={busy} startDecorator={<PlayArrowIcon />}>
-            Run /ingest
-          </Button>
-        </Stack>
+        <Button
+          onClick={process}
+          loading={busy}
+          disabled={busy}
+          startDecorator={<CloudUploadIcon />}
+          sx={{ mt: 1 }}
+        >
+          {files.length > 0 ? "Upload & Ingest" : "Run /ingest"}
+        </Button>
         {busy ? <LinearProgress sx={{ mt: 2 }} /> : null}
         {status ? (
           <Typography level="body-sm" sx={{ mt: 1 }}>
@@ -120,6 +156,11 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
           <Alert color="danger" sx={{ mt: 1 }}>
             {error}
           </Alert>
+        ) : null}
+        {progress && progress.running && progress.total_files > 0 ? (
+          <Typography level="body-xs" color="neutral" sx={{ mt: 0.5 }}>
+            {progress.processed_files} of {progress.total_files} files processed
+          </Typography>
         ) : null}
         {stats ? (
           <Box sx={{ mt: 2 }}>

@@ -4,6 +4,7 @@ server {
 
     root /usr/share/nginx/html;
     index index.html;
+    client_max_body_size 50m;
 
     # Proxy API calls to the backend, stripping the /api prefix
     # (BACKEND_URL is substituted at container startup, e.g.
@@ -16,6 +17,11 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_http_version 1.1;
+        # /ingest can take several minutes; don't cut it off at the
+        # nginx default of 60s (which surfaced as a 504 in the UI).
+        proxy_connect_timeout 10s;
+        proxy_send_timeout    1800s;
+        proxy_read_timeout    1800s;
     }
 
     # SPA fallback

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useColorScheme } from "@mui/joy/styles";
 import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
 import ForceGraph2D, { type ForceGraphMethods } from "react-force-graph-2d";
@@ -34,6 +35,8 @@ export default function GraphView({ subgraph, selectedNodeId, onNodeClick }: Gra
   const { ref, width } = useContainerWidth();
   const graphRef = useRef<ForceGraphMethods | null>(null);
   const fittedRef = useRef(false);
+  const { mode, systemMode } = useColorScheme();
+  const isDark = mode === "dark" || (mode === "system" && systemMode === "dark");
   const height = 560;
   const hasData = subgraph.nodes.length > 0;
 
@@ -85,6 +88,7 @@ export default function GraphView({ subgraph, selectedNodeId, onNodeClick }: Gra
           enableNodeDrag
           nodeColor={(node) => (selectedNodeId === node.id ? "#ffeb3b" : colorForType(node.type as string | undefined))}
           nodeLabel={(node) => node.id ?? ""}
+          linkColor={isDark ? "#c9d1d9" : "#9e9e9e"}
           linkDirectionalArrowLength={4}
           linkDirectionalArrowRelPos={0.9}
           linkLabel={(link) => (link.relation as string | undefined) ?? ""}

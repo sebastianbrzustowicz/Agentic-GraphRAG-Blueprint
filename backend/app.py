@@ -10,6 +10,7 @@ logger = logging.getLogger("graphrag")
 
 from src.config import Config
 from src.ingestion import run_ingestion
+from src.progress import snapshot as progress_snapshot, stop as progress_stop
 from src.search import global_search, local_search
 from src.storage.graph_store import NetworkXGraphStore
 from src.storage.vector_store import ChromaVectorStore
@@ -68,7 +69,15 @@ async def upload(file: UploadFile = File(...)) -> dict:
 
 @app.post("/ingest")
 def ingest() -> dict:
-    return run_ingestion(config, graph_store, vector_store)
+    try:
+        return run_ingestion(config, graph_store, vector_store)
+    finally:
+        progress_stop()
+
+
+@app.get("/progress")
+def ingest_progress() -> dict:
+    return progress_snapshot()
 
 
 @app.post("/query")

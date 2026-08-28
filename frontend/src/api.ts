@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { GraphStats, IngestStats, QueryResponse, SearchMode } from "./types";
+import type { GraphStats, IngestProgress, IngestStats, QueryResponse, SearchMode } from "./types";
 
 const client = axios.create({ baseURL: "/api", timeout: 1800000 });
 
@@ -26,5 +26,10 @@ export async function uploadFiles(files: File[]): Promise<string[]> {
 
 export async function fetchStats(): Promise<GraphStats> {
   const response = await client.get<GraphStats>("/stats");
+  return response.data;
+}
+
+export async function fetchProgress(): Promise<IngestProgress> {
+  const response = await client.get<IngestProgress>("/progress");
   return response.data;
 }

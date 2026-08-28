@@ -10,6 +10,7 @@ import networkx as nx
 from openai import APIConnectionError, APITimeoutError, NotFoundError, RateLimitError
 
 from src.config import Config
+from src.progress import file_finished, file_started, start as progress_start
 from src.storage.base import AbstractGraphStore, AbstractVectorStore
 
 CHARS_PER_TOKEN = 4
@@ -136,6 +137,7 @@ def run_ingestion(
     vector_store.reset()
     files = sorted(glob.glob(os.path.join(config.data_dir, "*.txt")))
     logger.info("ingestion started: %d file(s) in %s", len(files), config.data_dir)
+    progress_start(len(files))
     client = config.client()
     stats = {
         "files": len(files),
@@ -147,6 +149,7 @@ def run_ingestion(
     }
     known_entities = set()
     for file_index, path in enumerate(files):
+        file_started(os.path.basename(path))
         with open(path, encoding="utf-8") as handle:
             text = handle.read()
         chunks = chunk_text(text, config.chunk_size, config.chunk_overlap)
@@ -204,6 +207,7 @@ def run_ingestion(
                 ],
             )
             stats["chunks"] += 1
+        file_finished()
 
     nodes = graph_store.get_all_nodes()
     edges = graph_store.get_all_edges()
