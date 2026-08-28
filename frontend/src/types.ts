@@ -37,6 +37,7 @@ export interface IngestProgress {
   total_files: number;
   processed_files: number;
   current_file: string;
+  files: string[];
   result: IngestStats | null;
   error: string | null;
 }

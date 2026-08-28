@@ -137,7 +137,7 @@ def run_ingestion(
     vector_store.reset()
     files = sorted(glob.glob(os.path.join(config.data_dir, "*.txt")))
     logger.info("ingestion started: %d file(s) in %s", len(files), config.data_dir)
-    progress_start(len(files))
+    progress_start(len(files), [os.path.basename(path) for path in files])
     client = config.client()
     stats = {
         "files": len(files),

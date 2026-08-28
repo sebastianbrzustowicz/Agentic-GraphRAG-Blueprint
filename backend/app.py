@@ -100,6 +100,10 @@ def ingest_progress() -> dict:
 
 @app.post("/query")
 def query(request: QueryRequest) -> dict:
-    if request.mode == "global":
-        return global_search(request.query, config, graph_store, vector_store)
-    return local_search(request.query, config, graph_store, vector_store)
+    try:
+        if request.mode == "global":
+            return global_search(request.query, config, graph_store, vector_store)
+        return local_search(request.query, config, graph_store, vector_store)
+    except Exception as exc:
+        logger.exception("query failed")
+        raise HTTPException(status_code=503, detail=f"Search unavailable: {exc}") from exc

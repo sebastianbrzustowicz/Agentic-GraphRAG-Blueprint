@@ -37,11 +37,13 @@ class ChromaVectorStore(AbstractVectorStore):
             base_url=config.openai_base_url or None,
         )
 
-    def _embed(self, texts: list[str]) -> list[list[float]]:
+    def _embed(self, texts: list[str], attempts: int = 4, delay: float = 1.0) -> list[list[float]]:
         response = _retry_call(
             self._embed_client.embeddings.create,
             model=self._config.embedding_model,
             input=texts,
+            attempts=attempts,
+            delay=delay,
         )
         return [item.embedding for item in response.data]
 
@@ -54,7 +56,9 @@ class ChromaVectorStore(AbstractVectorStore):
         if not documents:
             return
         metadata_list = metadatas or [{} for _ in documents]
-        embeddings = self._embed(documents)
+        # Ingestion runs in the background, so it can afford a longer retry
+        # window to ride out transient Azure OpenAI 404/5xx hiccups.
+        embeddings = self._embed(documents, attempts=6, delay=1.5)
         self._collection.upsert(
             ids=ids,
             documents=documents,

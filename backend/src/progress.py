@@ -6,18 +6,20 @@ _state = {
     "total_files": 0,
     "processed_files": 0,
     "current_file": "",
+    "files": [],
     "result": None,
     "error": None,
 }
 
 
-def start(total_files: int) -> None:
+def start(total_files: int, files: list[str]) -> None:
     with _lock:
         _state.update(
             running=True,
             total_files=total_files,
             processed_files=0,
             current_file="",
+            files=files,
             result=None,
             error=None,
         )

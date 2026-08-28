@@ -10,7 +10,7 @@ import ListItem from "@mui/joy/ListItem";
 import Stack from "@mui/joy/Stack";
 import Typography from "@mui/joy/Typography";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import { fetchProgress, fetchStats, runIngest, uploadFiles } from "../api";
+import { errorMessage, fetchProgress, fetchStats, runIngest, uploadFiles } from "../api";
 import type { GraphStats, IngestProgress } from "../types";
 
 interface IngestionPanelProps {
@@ -107,7 +107,7 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
         await uploadFiles(files);
         setFiles([]);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Upload failed");
+        setError(errorMessage(err));
         setStatus(null);
         setPhase("idle");
         return;
@@ -119,7 +119,7 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
     try {
       await runIngest();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ingestion failed to start");
+      setError(errorMessage(err));
       setStatus(null);
       setPhase("idle");
     }
@@ -176,6 +176,11 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
         {progress && progress.running && progress.total_files > 0 ? (
           <Typography level="body-xs" color="neutral" sx={{ mt: 0.5 }}>
             {progress.processed_files} of {progress.total_files} files processed
+          </Typography>
+        ) : null}
+        {progress && progress.files && progress.files.length > 0 ? (
+          <Typography level="body-xs" color="neutral" sx={{ mt: 0.5 }}>
+            Files in data: {progress.files.join(", ")}
           </Typography>
         ) : null}
         {stats ? (

@@ -10,7 +10,7 @@ import Sheet from "@mui/joy/Sheet";
 import Textarea from "@mui/joy/Textarea";
 import Typography from "@mui/joy/Typography";
 import SendIcon from "@mui/icons-material/Send";
-import { runQuery } from "../api";
+import { errorMessage, runQuery } from "../api";
 import type { SearchMode, Subgraph } from "../types";
 
 interface QueryPanelProps {
@@ -35,7 +35,7 @@ export default function QueryPanel({ onResult }: QueryPanelProps) {
       setAnswer(result.answer);
       onResult(result.subgraph);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Query failed");
+      setError(errorMessage(err));
     } finally {
       setLoading(false);
     }

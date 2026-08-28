@@ -245,6 +245,8 @@ resource "azurerm_container_app" "api" {
   }
 
   template {
+    min_replicas = 1
+
     volume {
       name         = "data"
       storage_type = "AzureFile"
@@ -300,12 +302,57 @@ resource "azurerm_container_app" "api" {
   }
 
   ingress {
-    external_enabled = true
+    external_enabled = false
     target_port      = 8000
 
     traffic_weight {
       percentage      = 100
       latest_revision = true
+    }
+  }
+}
+
+resource "azuread_application" "ui" {
+  display_name = "app-graphrag-ui-${random_string.suffix.result}"
+}
+
+resource "azuread_service_principal" "ui" {
+  client_id                    = azuread_application.ui.client_id
+  app_role_assignment_required = true
+}
+
+resource "azuread_application_password" "ui" {
+  application_object_id = azuread_application.ui.object_id
+}
+
+resource "azuread_app_role_assignment" "ui" {
+  app_role_id         = "00000000-0000-0000-0000-000000000000"
+  principal_object_id = data.azurerm_client_config.current.object_id
+  resource_object_id  = azuread_service_principal.ui.object_id
+}
+
+resource "azapi_resource" "ui_auth" {
+  type      = "Microsoft.App/containerApps/authConfigs@2024-02-02-preview"
+  name      = "current"
+  parent_id = azurerm_container_app.ui.id
+  body = {
+    properties = {
+      platform = {
+        enabled = true
+      }
+      globalValidation = {
+        unauthenticatedClientAction = "RedirectToLoginPage"
+      }
+      identityProviders = {
+        azureActiveDirectory = {
+          enabled = true
+          registration = {
+            openIdIssuer            = "https://sts.windows.net/${data.azurerm_client_config.current.tenant_id}/v2.0"
+            clientId                = azuread_application.ui.client_id
+            clientSecretSettingName = "aad-secret"
+          }
+        }
+      }
     }
   }
 }
@@ -319,6 +366,11 @@ resource "azurerm_container_app" "ui" {
   secret {
     name  = "acr-password"
     value = azurerm_container_registry.acr.admin_password
+  }
+
+  secret {
+    name  = "aad-secret"
+    value = azuread_application_password.ui.value
   }
 
   registry {

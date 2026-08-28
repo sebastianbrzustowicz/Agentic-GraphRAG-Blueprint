@@ -3,6 +3,19 @@ import type { GraphStats, IngestProgress, IngestStats, QueryResponse, SearchMode
 
 const client = axios.create({ baseURL: "/api", timeout: 1800000 });
 
+// Extract a readable message from an axios/fetch error, preferring the
+// backend's `detail` field (e.g. FastAPI HTTPException) over the generic
+// "Request failed with status code 5xx" text.
+export function errorMessage(err: unknown): string {
+  if (err && typeof err === "object" && "response" in err) {
+    const detail = (err as { response?: { data?: { detail?: unknown } } }).response?.data?.detail;
+    if (detail) {
+      return String(detail);
+    }
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
 export async function runQuery(query: string, mode: SearchMode): Promise<QueryResponse> {
   const response = await client.post<QueryResponse>("/query", { query, mode });
   return response.data;
