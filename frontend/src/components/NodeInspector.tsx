@@ -44,7 +44,7 @@ export default function NodeInspector({ node, edges }: NodeInspectorProps) {
                 </ListItemDecorator>
                 <ListItemContent>
                   <Typography level="body-xs">
-                    {edge.source} —[{edge.relation ?? ""}]→ {edge.target}
+                    {edge.source} -[{edge.relation ?? ""}]→ {edge.target}
                   </Typography>
                   {edge.description ? (
                     <Typography level="body-xs" color="neutral">

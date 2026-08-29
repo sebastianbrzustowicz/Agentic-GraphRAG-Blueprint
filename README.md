@@ -1,4 +1,7 @@
 ## Agentic GraphRAG Blueprint
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+
 A reference architecture for an Agentic GraphRAG (Knowledge Graph + Vector Search) solution deployed on Microsoft Azure using Terraform (IaC), FastAPI, and React.
 
 This repository is a ready-made starting point for building systems that answer questions over large, unstructured document collections. Unlike plain retrieval, which returns isolated snippets, it combines a knowledge graph with vector search so an agent can connect facts across many documents - for example, tracing how a topic in one report relates to findings in another. Ingestion is incremental, so the corpus can grow without reprocessing everything from scratch and without exploding token costs.
@@ -157,6 +160,8 @@ make apply       # provisions the whole environment
 ```
 
 Using GitHub Actions instead: run `make bootstrap`, copy the printed values into **Settings → Secrets and variables → Actions**, and push to `main` - the workflow provisions Azure and deploys the backend and frontend images.
+
+Docs-only changes (`README.md`, `images/`, `data/`, `Makefile`, version bumps in `frontend/package.json`) skip the pipeline automatically, and adding `[skip ci]` to a commit message skips it manually. Use the **Run workflow** button in the Actions tab to deploy manually when a run was skipped.
 
 Teardown: `make destroy-all` removes all resources, the state backend, and the service principal.
 

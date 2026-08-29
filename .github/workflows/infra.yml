@@ -4,9 +4,26 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'README.md'
+      - '**/*.md'
+      - 'images/**'
+      - 'data/**'
+      - 'Makefile'
+      - 'frontend/package.json'
+      - '.env.example'
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - 'README.md'
+      - '**/*.md'
+      - 'images/**'
+      - 'data/**'
+      - 'Makefile'
+      - 'frontend/package.json'
+      - '.env.example'
+  workflow_dispatch:
 
 jobs:
   terraform:
@@ -49,12 +66,12 @@ jobs:
         run: terraform plan
 
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: terraform apply -auto-approve
 
       - name: Export Terraform Outputs
         id: tf_outputs
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         run: |
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
           echo "acr_name=$(terraform output -raw acr_name)" >> $GITHUB_OUTPUT
@@ -65,7 +82,7 @@ jobs:
   deploy:
     name: Build & Deploy Application
     needs: terraform
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
 
     steps:

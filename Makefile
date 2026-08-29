@@ -9,7 +9,7 @@ SP_NAME ?= sp-github-graphrag-infra
 -include infrastructure/terraform/.env
 export
 
-.PHONY: bootstrap apply ingest destroy clean-state destroy-all
+.PHONY: bootstrap plan apply ingest destroy clean-state destroy-all version
 
 bootstrap:
 	chmod +x ./infrastructure/bootstrap/init-tf-state.sh
@@ -28,6 +28,14 @@ apply:
 		-backend-config="storage_account_name=$(SA_NAME)" \
 		-backend-config="container_name=$(CONTAINER_NAME)" \
 		-backend-config="key=terraform.tfstate" && terraform apply -auto-approve
+
+version:
+	@test -n "$(VERSION)" || (echo "Usage: make version VERSION=1.0.0" && exit 1)
+	@sed -i 's/"version": ".*"/"version": "$(VERSION)"/' frontend/package.json
+	@sed -i 's/(Version [0-9][^)]*)/(Version $(VERSION))/' README.md
+	@sed -i 's/version = {[^}]*}/version = {$(VERSION)}/' README.md
+	@sed -i 's|badge/version-[^-]*-blue|badge/version-$(VERSION)-blue|' README.md
+	@echo "Version $(VERSION) applied to frontend/package.json and README.md"
 
 ingest:
 	curl -s -X POST http://localhost:8000/ingest

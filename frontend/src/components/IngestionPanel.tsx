@@ -64,7 +64,7 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
           if (p.total_files > 0) {
             const done = p.processed_files;
             const currentLine = p.current_file ? ` · now: ${p.current_file}` : "";
-            setStatus(`Processing ${done + 1}/${p.total_files} — ${done} file(s) done${currentLine}`);
+            setStatus(`Processing ${done + 1}/${p.total_files} - ${done} file(s) done${currentLine}`);
           }
         } else if (sawRunning.current) {
           // ingestion finished (or failed)
