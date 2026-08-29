@@ -14,6 +14,7 @@ from openai import APIConnectionError, APITimeoutError, BadRequestError, NotFoun
 from src.config import Config
 from src.progress import file_finished, file_started
 from src.progress import start as progress_start
+from src.prompts import DEFAULT_PROMPTS
 from src.storage.base import AbstractGraphStore, AbstractVectorStore
 
 CHARS_PER_TOKEN = 4
@@ -110,19 +111,9 @@ def _parse_json(text: str) -> dict:
     return json.loads(cleaned)
 
 
-_EXTRACTION_SYSTEM = (
-    "You are a medical knowledge graph extraction engine. "
-    "Extract medical entities and their relationships from the provided text. "
-    "Return JSON only with the keys 'entities' and 'relations'. "
-    "Each entity is an object with keys 'name', 'type', 'description'. "
-    "Each relation is an object with keys 'source', 'target', 'type', 'description'. "
-    "Use canonical entity names and reuse the exact same name for the same entity across chunks. "
-    "Be thorough: capture every meaningful relationship between the entities you find."
-)
-
-
-def _extraction_system(known_entities: set[str] | None = None) -> str:
-    system = _EXTRACTION_SYSTEM
+def _extraction_system(prompts: dict | None, known_entities: set[str] | None = None) -> str:
+    prompts = prompts or DEFAULT_PROMPTS
+    system = prompts["extraction"]["system"]
     if known_entities:
         names = sorted(known_entities)[:150]
         system += (
@@ -139,8 +130,9 @@ def extract_graph(
     model: str,
     chunk: str,
     known_entities: set[str] | None = None,
+    prompts: dict | None = None,
 ) -> tuple[list[dict], list[dict]]:
-    raw = _chat(client, model, _extraction_system(known_entities), chunk, json_mode=True)
+    raw = _chat(client, model, _extraction_system(prompts, known_entities), chunk, json_mode=True)
     data = _parse_json(raw)
     return data.get("entities", []), data.get("relations", [])
 
@@ -151,6 +143,7 @@ def extract_graph_batch(
     chunks: list[str],
     batch_size: int = 5,
     known_entities: set[str] | None = None,
+    prompts: dict | None = None,
 ) -> list[tuple[list[dict], list[dict]]]:
     """Extract entities/relations for several chunks in a single LLM call.
 
@@ -159,7 +152,7 @@ def extract_graph_batch(
     caller can fall back to one call per chunk.
     """
     system = (
-        _extraction_system(known_entities)
+        _extraction_system(prompts, known_entities)
         + " The user message contains several text chunks separated by '"
         + BATCH_MARKER
         + " <i>' markers. For EACH chunk return JSON only with the key 'chunks': "
@@ -191,15 +184,16 @@ def _extract_batch_with_fallback(
     model: str,
     batch: list[str],
     known_entities: set[str] | None = None,
+    prompts: dict | None = None,
 ) -> list[tuple[list[dict], list[dict]]]:
     if len(batch) == 1:
         # Single chunk: skip the batch round-trip entirely.
-        return [extract_graph(client, model, batch[0], known_entities)]
+        return [extract_graph(client, model, batch[0], known_entities, prompts)]
     try:
-        return extract_graph_batch(client, model, batch, known_entities=known_entities)
+        return extract_graph_batch(client, model, batch, known_entities=known_entities, prompts=prompts)
     except Exception as exc:
         logger.warning("batch extraction failed (%s); falling back to per-chunk calls", exc)
-        return [extract_graph(client, model, chunk, known_entities) for chunk in batch]
+        return [extract_graph(client, model, chunk, known_entities, prompts) for chunk in batch]
 
 
 def _extract_file(
@@ -209,13 +203,14 @@ def _extract_file(
     batch_size: int,
     max_concurrency: int,
     known_entities: set[str] | None = None,
+    prompts: dict | None = None,
 ) -> list[tuple[list[dict], list[dict]]]:
     """Extract all chunks of one file: batched LLM calls executed in parallel."""
     batches = [chunks[i : i + batch_size] for i in range(0, len(chunks), batch_size)]
     ordered: list[list[tuple[list[dict], list[dict]]]] = [None] * len(batches)  # type: ignore[list-item]
     with ThreadPoolExecutor(max_workers=max_concurrency) as executor:
         futures = {
-            executor.submit(_extract_batch_with_fallback, client, model, batch, known_entities): index
+            executor.submit(_extract_batch_with_fallback, client, model, batch, known_entities, prompts): index
             for index, batch in enumerate(batches)
         }
         for future in as_completed(futures):
@@ -232,13 +227,10 @@ def generate_community_report(
     community_id: int,
     entities: list[str],
     relations: list[str],
+    prompts: dict | None = None,
 ) -> str:
-    system = (
-        "You are a medical knowledge graph analyst. "
-        "Write a concise but information-dense community report covering key entities, "
-        "relationships, treatments, risk factors and clinical implications. "
-        "Write in the language of the input. Return plain text."
-    )
+    prompts = prompts or DEFAULT_PROMPTS
+    system = prompts["community_report"]["system"]
     user = (
         f"Community {community_id}:\n"
         f"Entities:\n{chr(10).join(entities)}\n\n"
@@ -405,6 +397,7 @@ def run_ingestion(
                 config.extract_batch_size,
                 config.max_concurrency,
                 known_entities,
+                config.prompts,
             )
         else:
             extraction = []
@@ -518,6 +511,7 @@ def run_ingestion(
             item["community_id"],
             entity_lines,
             relation_lines,
+            config.prompts,
         )
 
     if to_report:

@@ -43,31 +43,18 @@ def local_search(
     seed_ids = [hit["metadata"]["name"] for hit in entity_hits if hit["metadata"].get("name")]
     subgraph = graph_store.get_subgraph(seed_ids, radius=config.subgraph_radius)
     context = _build_local_context(entity_hits, chunk_hits, subgraph)
-    system = (
-        "You are a medical expert answering questions using only the provided knowledge graph context. "
-        "Base your answer on the context, name the entities you cite, and state clearly when the context "
-        "does not contain enough information."
-    )
+    system = config.prompts["local_search"]["system"]
     user = f"Question: {query}\n\n{context}"
     answer = _chat(client, config.llm_model, system, user)
     return {"answer": answer, "subgraph": subgraph}
 
 
-def _map_report(client, model: str, query: str, report: str) -> str:
-    system = (
-        "You are a medical expert. From the community report below extract only the information "
-        "relevant to the user's question. Return concise bullet points and keep entity names."
-    )
+def _map_report(client, model: str, query: str, report: str, system: str) -> str:
     user = f"Question: {query}\n\nCommunity report:\n{report}"
     return _chat(client, model, system, user)
 
 
-def _reduce_summaries(client, model: str, query: str, summaries: list[str]) -> str:
-    system = (
-        "You are a medical expert. Synthesize the partial summaries below into one coherent, "
-        "complete answer to the user's question. Merge overlapping facts, resolve contradictions, "
-        "do not invent information."
-    )
+def _reduce_summaries(client, model: str, query: str, summaries: list[str], system: str) -> str:
     user = f"Question: {query}\n\nSummaries:\n" + "\n---\n".join(summaries)
     return _chat(client, model, system, user)
 
@@ -88,10 +75,14 @@ def global_search(
     summaries = []
     for report in reports:
         try:
-            summaries.append(_map_report(client, config.llm_model, query, report["text"]))
+            summaries.append(
+                _map_report(client, config.llm_model, query, report["text"], config.prompts["map_report"]["system"])
+            )
         except Exception:
             summaries.append(report["text"])
-    answer = _reduce_summaries(client, config.llm_model, query, summaries)
+    answer = _reduce_summaries(
+        client, config.llm_model, query, summaries, config.prompts["reduce_summaries"]["system"]
+    )
     seed_ids = []
     for report in reports:
         metadata = report["metadata"] or {}

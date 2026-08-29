@@ -9,3 +9,5 @@ dist/
 .*/
 !.github/
 test_files/
+data/*.txt
+data/.ingest_state.json

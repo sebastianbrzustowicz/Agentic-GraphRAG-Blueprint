@@ -3,6 +3,8 @@ from dataclasses import dataclass, field
 
 from dotenv import load_dotenv
 
+from src.prompts import load_prompts
+
 load_dotenv()
 
 
@@ -39,6 +41,7 @@ class Config:
     extract_batch_size: int = field(default_factory=lambda: int(os.getenv("EXTRACT_BATCH_SIZE", "1")))
     embed_batch_size: int = field(default_factory=lambda: int(os.getenv("EMBED_BATCH_SIZE", "32")))
     force_reset: bool = field(default_factory=lambda: os.getenv("FORCE_RESET", "").lower() in ("1", "true", "yes"))
+    prompts: dict = field(default_factory=load_prompts)
 
     def client(self):
         from openai import OpenAI

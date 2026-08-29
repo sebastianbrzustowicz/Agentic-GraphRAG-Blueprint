@@ -124,6 +124,8 @@ flowchart TD
 
 - Knowledge graph + vector index: Documents become a graph of entities and relations backed by NetworkX, alongside a ChromaDB vector index over chunks, entities, and reports. Both stores are swappable through `AbstractGraphStore` and `AbstractVectorStore`.
 
+- Domain-agnostic prompts: All LLM system prompts (extraction, community reports, local/global search) live in `backend/prompts.json` with universal defaults. Copy that file, edit the `system` strings, and set `PROMPTS_PATH` to tailor the assistant to any domain.
+
 - Interactive graph visualizer: Subgraphs returned by search are rendered live in the UI, so you can inspect how an answer was assembled.
 
 ## Simple Start
