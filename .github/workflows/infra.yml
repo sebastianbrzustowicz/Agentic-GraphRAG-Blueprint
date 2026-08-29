@@ -26,8 +26,55 @@ on:
   workflow_dispatch:
 
 jobs:
+  quality:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: Install Backend Dependencies
+        run: |
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+
+      - name: Ruff Lint (backend)
+        run: ruff check backend
+
+      - name: Backend Tests
+        working-directory: backend
+        run: python -m pytest -q
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: ESLint (frontend)
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type Check & Build (frontend)
+        working-directory: frontend
+        run: npm run build
+
   terraform:
     name: Terraform Plan & Apply
+    # Runs only on manual dispatch or when the commit message contains
+    # '[cloud]'; a normal push runs just the quality (lint & test) job.
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message || '', '[cloud]') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -79,54 +126,10 @@ jobs:
           echo "container_app_ui_name=$(terraform output -raw container_app_ui_name)" >> $GITHUB_OUTPUT
           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
 
-  quality:
-    name: Lint & Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-          cache-dependency-path: backend/requirements*.txt
-
-      - name: Install Backend Dependencies
-        run: |
-          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
-
-      - name: Ruff Lint (backend)
-        run: ruff check backend
-
-      - name: Backend Tests
-        working-directory: backend
-        run: python -m pytest -q
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install Frontend Dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: ESLint (frontend)
-        working-directory: frontend
-        run: npm run lint
-
-      - name: Type Check & Build (frontend)
-        working-directory: frontend
-        run: npm run build
-
   deploy:
     name: Build & Deploy Application
     needs: [terraform, quality]
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message || '', '[cloud]'))) }}
     runs-on: ubuntu-latest
 
     steps:
@@ -171,4 +174,3 @@ jobs:
             --name ${{ needs.terraform.outputs.container_app_ui_name }} \
             --resource-group ${{ needs.terraform.outputs.resource_group_name }} \
             --image ${{ needs.terraform.outputs.acr_login_server }}/graphrag-ui:${{ github.sha }}
-

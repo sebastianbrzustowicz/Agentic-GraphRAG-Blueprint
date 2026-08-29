@@ -192,7 +192,7 @@ make apply       # 環境全体をプロビジョニング
 
 GitHub Actions を使う場合：`make bootstrap` を実行し、表示された値を **Settings → Secrets and variables → Actions** にコピーして `main` にプッシュします。ワークフローが Azure をプロビジョニングし、バックエンドとフロントエンドのイメージをデプロイします。
 
-ドキュメントのみの変更（`README.md`、`images/`、`data/`、`Makefile`、`frontend/package.json` のバージョン変更）はパイプラインを自動的にスキップし、コミットメッセージに `[skip ci]` を追加すると手動でスキップできます。スキップされた実行を手動でデプロイするには、Actions タブの **Run workflow** ボタンを使用します。
+通常のプッシュでは lint & test ジョブのみが実行されます。コミットメッセージに `[cloud]` を追加すると Terraform も実行され Azure にデプロイされます。`[skip ci]` はパイプライン全体をスキップし、ドキュメントのみの変更（`README.md`、`images/`、`data/`、`Makefile`、`frontend/package.json` のバージョン変更）は自動的に除外されます。手動でデプロイするには Actions タブの **Run workflow** ボタンを使用します。
 
 破棄：`make destroy-all` はすべてのリソース、ステートバックエンド、service principal を削除します。
 

@@ -192,7 +192,7 @@ make apply       # 预置整个环境
 
 改用 GitHub Actions：运行 `make bootstrap`，将打印出的值复制到 **Settings → Secrets and variables → Actions**，然后推送到 `main`——工作流会预置 Azure 并部署前后端镜像。
 
-仅文档类更改（`README.md`、`images/`、`data/`、`Makefile`、`frontend/package.json` 中的版本号）会自动跳过流水线，在提交信息中加入 `[skip ci]` 则可手动跳过。当某次运行被跳过时，可在 Actions 标签页使用 **Run workflow** 按钮手动部署。
+普通推送只运行 lint & test 作业。在提交信息中加入 `[cloud]` 还会运行 Terraform 并部署到 Azure；`[skip ci]` 会完全跳过流水线。仅文档类更改（`README.md`、`images/`、`data/`、`Makefile`、`frontend/package.json` 中的版本号）会被自动过滤。需要手动部署时，可使用 Actions 标签页的 **Run workflow** 按钮。
 
 拆除：`make destroy-all` 删除所有资源、状态后端和 service principal。
 

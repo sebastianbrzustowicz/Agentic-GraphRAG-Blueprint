@@ -189,9 +189,9 @@ make bootstrap   # creates the state backend and service principal
 make apply       # provisions the whole environment
 ```
 
-Using GitHub Actions instead: run `make bootstrap`, copy the printed values into **Settings → Secrets and variables → Actions**, and push to `main` - the workflow provisions Azure and deploys the backend and frontend images.
+Using GitHub Actions instead: run `make bootstrap`, copy the printed values into **Settings → Secrets and variables → Actions**, and push to `main` with `[cloud]` in the commit message - the workflow provisions Azure and deploys the backend and frontend images.
 
-Docs-only changes (`README.md`, `images/`, `data/`, `Makefile`, version bumps in `frontend/package.json`) skip the pipeline automatically, and adding `[skip ci]` to a commit message skips it manually. Use the **Run workflow** button in the Actions tab to deploy manually when a run was skipped.
+A normal push runs only the lint & test job. Adding `[cloud]` to the commit message also runs Terraform and deploys to Azure; `[skip ci]` skips the pipeline entirely, and docs-only changes (`README.md`, `images/`, `data/`, `Makefile`, version bumps in `frontend/package.json`) are filtered out automatically. Use the **Run workflow** button in the Actions tab to deploy manually.
 
 Teardown: `make destroy-all` removes all resources, the state backend, and the service principal.
 
