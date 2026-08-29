@@ -3,7 +3,7 @@ RG_NAME ?= rg-tfstate-graphrag
 CONTAINER_NAME ?= tfstate
 SUB_SHORT = $(shell az account show --query id -o tsv 2>/dev/null | tr -d '-' | cut -c1-8)
 SA_NAME ?= sttfstate$(SUB_SHORT)
-APP_RG_NAME ?= rg-enterprise-graphrag-dev
+APP_RG_NAME ?= rg-agentic-graphrag-dev
 SP_NAME ?= sp-github-graphrag-infra
 
 .PHONY: bootstrap apply ingest destroy clean-state destroy-all

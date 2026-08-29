@@ -4,7 +4,7 @@ authors:
 - family-names: "Brzustowicz"
   given-names: "Sebastian"
   email: "Se.Brzustowicz@gmail.com"
-title: "Agentic GraphRAG Blueprint: Enterprise agentic GraphRAG infrastructure with knowledge graphs and vector search"
+title: "Agentic GraphRAG Blueprint: knowledge graphs and vector search for agentic question answering"
 version: 1.0.0
 date-released: 2026-08-28
 url: "https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint"
@@ -15,16 +15,15 @@ keywords:
   - vector-search
   - rag
   - llm
-  - langgraph
   - agentic-ai
   - azure
   - terraform
   - fastapi
   - react
 abstract: >-
-  An enterprise-grade reference architecture for an Agentic GraphRAG system
-  that combines knowledge graphs with vector search. It features LangGraph
-  agent orchestration with local and global search routing, incremental
+  A reference architecture for an Agentic GraphRAG system
+  that combines knowledge graphs with vector search. It features local
+  and global search routing, incremental
   ingestion with Louvain community detection and LLM community reports,
   interactive graph visualization, and a complete Azure deployment defined
   in Terraform with a CI/CD pipeline.

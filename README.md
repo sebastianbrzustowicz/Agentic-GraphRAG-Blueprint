@@ -1,5 +1,11 @@
-## Enterprise Agentic GraphRAG Infrastructure
-An enterprise-grade reference architecture for an Agentic GraphRAG (Knowledge Graph + Vector Search) solution deployed on Microsoft Azure using Terraform (IaC), LangGraph, FastAPI, and Streamlit/React.
+## Agentic GraphRAG Blueprint
+A reference architecture for an Agentic GraphRAG (Knowledge Graph + Vector Search) solution deployed on Microsoft Azure using Terraform (IaC), FastAPI, and React.
+
+This repository is a ready-made starting point for building systems that answer questions over large, unstructured document collections. Unlike plain retrieval, which returns isolated snippets, it combines a knowledge graph with vector search so an agent can connect facts across many documents - for example, tracing how a topic in one report relates to findings in another. Ingestion is incremental, so the corpus can grow without reprocessing everything from scratch and without exploding token costs.
+
+It is most useful in knowledge-heavy domains where answers depend on cross-document synthesis rather than a single match: scientific and medical literature, legal and regulatory documents, product and incident documentation, and research workflows that ask "how do these things relate?" instead of "where is this phrase?".
+
+The design aims to fit into the future. The agentic local/global search routing adapts to the complexity of each question. The store abstractions (`AbstractGraphStore`, `AbstractVectorStore`) keep the vector and graph backends swappable as needs evolve. The whole stack is defined in Terraform with a CI/CD pipeline, so moving from prototype to a scalable deployment on Azure is possible. As document corpora keep growing and LLM costs keep falling, knowledge-graph-based retrieval is where RAG is headed.
 
 <div align="center">
   <img src="images/app_dark.png" alt="Agentic GraphRAG application UI" width="800px" style="border-radius: 8px; height: auto;" />
@@ -8,14 +14,14 @@ An enterprise-grade reference architecture for an Agentic GraphRAG (Knowledge Gr
 
 ## Architecture (C4 Model)
 ### Level 1: System Context Diagram
-High-level overview of user interaction with the Enterprise Agentic GraphRAG system.
+High-level overview of user interaction with the Agentic GraphRAG system.
 
 ```mermaid
 flowchart TD
     User([User / Client])
     
-    subgraph SystemBoundary ["Enterprise Agentic GraphRAG System [Azure]"]
-        GraphRAGSystem["Enterprise Agentic GraphRAG System<br/><i>(LangGraph Agent Orchestration, Knowledge Graph, Hybrid Search, LLM Synthesis)</i>"]
+    subgraph SystemBoundary ["Agentic GraphRAG System [Azure]"]
+        GraphRAGSystem["Agentic GraphRAG System<br/><i>(Knowledge Graph, Hybrid Search, LLM Synthesis)</i>"]
     end
 
     User -->|"Sends analytical queries & receives synthesized responses"| GraphRAGSystem
@@ -28,11 +34,11 @@ View of infrastructure components mapped to Azure resources defined via Terrafor
 flowchart TD
     User([User / Client])
 
-    subgraph Azure ["Azure Resource Group (rg-enterprise-graphrag-dev)"]
+    subgraph Azure ["Azure Resource Group (rg-agentic-graphrag-dev)"]
         
         subgraph Compute ["Compute (Azure Container Apps)"]
-            UI["Container App: graphrag-ui<br/><i>(Streamlit / Python or React)</i>"]
-            API["Container App: graphrag-agent-api<br/><i>(FastAPI / LangGraph / Python)</i>"]
+            UI["Container App: graphrag-ui<br/><i>(React + Vite)</i>"]
+            API["Container App: graphrag-agent-api<br/><i>(FastAPI / Python)</i>"]
         end
 
         subgraph Security ["Security & Registry"]
@@ -41,13 +47,13 @@ flowchart TD
         end
 
         subgraph AIServices ["AI Services & Models"]
-            AOAI["Azure OpenAI Service<br/><i>(LLM: Agents, Extraction, Reports + Embeddings)</i>"]
+            AOAI["Azure OpenAI Service<br/><i>(LLM: Extraction, Reports, Synthesis + Embeddings)</i>"]
         end
 
         subgraph Databases ["Databases & Search (Graph + Vector)"]
             GraphDB[("Graph DB - Cosmos DB Gremlin / Neo4j<br/><i>(Nodes, Edges & Louvain Clusters)</i>")]
             Search["Azure AI Search<br/><i>(Vector Index of Chunks & Reports)</i>"]
-            StateDB[("Azure Cosmos DB SQL<br/><i>(LangGraph Agent State & History)</i>")]
+            StateDB[("Azure Cosmos DB SQL<br/><i>(Sessions & History)</i>")]
         end
 
         subgraph StorageData ["Files & Documents"]
@@ -60,19 +66,12 @@ flowchart TD
     ACR -.->|"Pulls container images"| Compute
     API -.->|"Fetches secrets on startup"| KV
     
-    API -->|"3. Agent loop, entity extraction & synthesis"| AOAI
+    API -->|"3. Entity extraction & synthesis"| AOAI
     API -->|"4. Fetches subgraphs & relationships"| GraphDB
     API -->|"5. Hybrid search & Community Reports"| Search
-    API -->|"6. Reads/Writes LangGraph State Loop & Sessions"| StateDB
+    API -->|"6. Reads/Writes Sessions & History"| StateDB
     API -->|"7. Reads raw documents for Ingestion / Incremental Updates"| Blob
 ```
-
-## Core Features & Incremental Ingestion
-- Incremental Document Upload: Supports delta ingestion. New documents undergo entity/relationship extraction without re-processing existing files. The system merges new nodes/edges into the Knowledge Graph, runs Louvain re-clustering in memory, and triggers LLM Community Summarization only for affected communities, minimizing API token costs.
-
-- Agentic Routing (LangGraph): Dynamically chooses between Local Search (entity-level traversing for detailed facts) and Global Search (hierarchical Map-Reduce summarization for cross-document synthesis).
-
-- Interactive Graph Visualizer: Renders subgraphs and agent execution trajectories in real time within the UI container.
 
 ## Processing Workflows
 
@@ -114,15 +113,25 @@ flowchart TD
     classDef cheap fill:#e8f5e9,stroke:#2e7d32,stroke-width:1.5px,color:#1b5e20;
     classDef expensive fill:#fdecea,stroke:#c62828,stroke-width:1.5px,color:#b71c1c;
 ```
-## Local Prototype - Running the App
+## Core Features
 
-The repository contains a runnable prototype: `backend/` (FastAPI + NetworkX + ChromaDB + OpenAI) and `frontend/` (React + Vite + MUI Joy + react-force-graph-2d).
+- Incremental ingestion: New documents are chunked, extracted into entities and relations, and merged into the knowledge graph without re-processing existing files. Louvain re-clustering runs in memory, and community reports are regenerated only for affected communities, keeping LLM token costs low as the corpus grows.
+
+- Hybrid retrieval: Each query can use Local Search (vector search plus entity-level graph traversal for detailed, fact-level answers) or Global Search (map-reduce summarization over community reports for cross-document synthesis).
+
+- Knowledge graph + vector index: Documents become a graph of entities and relations backed by NetworkX, alongside a ChromaDB vector index over chunks, entities, and reports. Both stores are swappable through `AbstractGraphStore` and `AbstractVectorStore`.
+
+- Interactive graph visualizer: Subgraphs returned by search are rendered live in the UI, so you can inspect how an answer was assembled.
+
+## Simple Start
+
+The repository ships with a runnable prototype: a FastAPI backend (`backend/`) and a React frontend (`frontend/`).
 
 ### Prerequisites
-- `OPENAI_API_KEY` present in the root `.env` file (models used: `gpt-4o-mini`, `text-embedding-3-small`).
-- Input documents in `data/` (TXT files). The knowledge graph persists in `data/graph.gpickle`, the vector index in `.chroma_db/`.
+- `OPENAI_API_KEY` in the root `.env` file
+- Input documents (TXT files) in `data/`
 
-### Option A - Docker Compose (recommended)
+### Run
 
 ```bash
 docker compose up --build
@@ -130,54 +139,54 @@ docker compose up --build
 
 - Frontend UI: http://localhost:5173
 - Backend API: http://localhost:8000 (docs at `/docs`)
-- The frontend talks to the backend through the Vite dev proxy (`/api` → `http://backend:8000`) on the internal Docker network `graphrag-net`.
-- Volumes persist `./data` and `./.chroma_db` between container restarts.
 
-### Option B - Local development
+## Cloud Deployment
 
-Backend (from the repository root):
+The reference architecture deploys to Azure with Terraform, driven by a GitHub Actions workflow. No data is ingested in the cloud - the resources are provisioned empty and ready for you to load documents from the UI.
 
-```bash
-python -m venv .venv
-.venv/bin/pip install -r backend/requirements.txt
-cd backend
-../.venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
-```
-
-Frontend (in a second terminal):
+### 1. Bootstrap
 
 ```bash
-cd frontend
-npm install
-npm run dev
+make bootstrap
 ```
 
-### API endpoints
+This creates the Terraform state backend (resource group, storage account, container) and a service principal, then prints the credentials to configure.
 
-| Method | Path        | Description                                              |
-| ------ | ----------- | -------------------------------------------------------- |
-| POST   | `/ingest`   | Run the full ingestion pipeline (chunk → extract → graph → communities → reports) |
-| POST   | `/query`    | `{"query": "...", "mode": "local" \| "global"}` → `{answer, subgraph}` |
-| POST   | `/upload`   | Multipart upload of a `.txt` file into `data/`           |
-| GET    | `/stats`    | Node / edge / vector-document counts                     |
-| GET    | `/health`   | Liveness probe                                           |
+### 2. Add GitHub secrets
 
-### Repository Pattern (migration path)
+Store the printed values in **Settings → Secrets and variables → Actions**:
 
-`backend/src/storage/base.py` defines `AbstractGraphStore` and `AbstractVectorStore`. `NetworkXGraphStore` (→ Azure Cosmos DB Gremlin) and `ChromaVectorStore` (→ Azure AI Search) implement them; `ingestion.py` and `search.py` depend only on the abstractions, so the Azure migration is a drop-in replacement of the two store classes.
+- `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`
+- `TF_STATE_RG`, `TF_STATE_SA`
+
+### 3. Deploy
+
+Push the repository to GitHub (`main`). The workflow runs `terraform plan` + `terraform apply`, provisions the whole environment (resource group, Key Vault, ACR, Container Apps, Azure OpenAI, AI Search, Cosmos DB, Blob Storage), then builds and deploys the backend and frontend images to Container Apps.
+
+To deploy without GitHub Actions, run locally:
+
+```bash
+make plan    # preview the changes
+make apply   # create or update the infrastructure
+```
+
+Teardown: `make destroy` removes the Terraform-managed resources; `make destroy-all` also removes the state backend and the service principal.
+
+> [!NOTE]
+> Because the frontend uses Entra ID authentication, the service principal needs the `Application.ReadWrite.All` Graph permission (or the Application administrator role) in Entra ID before the first apply.
 
 ## Citation
 
 If this repository has helped you during your research, feel free to cite it:
 
 **APA Style**
-> Brzustowicz, S. (2026). Agentic GraphRAG Blueprint: Enterprise agentic GraphRAG infrastructure with knowledge graphs and vector search (Version 1.0.0) [Source code]. https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint
+> Brzustowicz, S. (2026). Agentic GraphRAG Blueprint: knowledge graphs and vector search for agentic question answering (Version 1.0.0) [Source code]. https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint
 
 **BibTeX**
 ```bibtex
 @software{brzustowicz_agentic_graphrag_blueprint_2026,
   author = {Sebastian Brzustowicz},
-  title = {Agentic GraphRAG Blueprint: Enterprise agentic GraphRAG infrastructure with knowledge graphs and vector search},
+  title = {Agentic GraphRAG Blueprint: knowledge graphs and vector search for agentic question answering},
   url = {https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint},
   version = {1.0.0},
   year = {2026}

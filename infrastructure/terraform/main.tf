@@ -12,7 +12,7 @@ resource "random_string" "suffix" {
 }
 
 resource "azurerm_resource_group" "rg" {
-  name     = "rg-enterprise-graphrag-dev"
+  name     = "rg-agentic-graphrag-dev"
   location = "swedencentral"
 }
 
