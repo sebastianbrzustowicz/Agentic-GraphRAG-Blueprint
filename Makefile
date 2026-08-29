@@ -6,6 +6,10 @@ SA_NAME ?= sttfstate$(SUB_SHORT)
 APP_RG_NAME ?= rg-agentic-graphrag-dev
 SP_NAME ?= sp-github-graphrag-infra
 
+# Prefer the project virtualenv when present; fall back to the system python.
+VENV_PY := $(CURDIR)/.venv/bin/python
+PYTHON := $(if $(wildcard $(VENV_PY)),$(VENV_PY),python)
+
 -include infrastructure/terraform/.env
 export
 
@@ -32,11 +36,11 @@ apply:
 quality: lint test
 
 lint:
-	cd backend && python -m ruff check .
+	cd backend && $(PYTHON) -m ruff check .
 	cd frontend && npm run lint
 
 test:
-	cd backend && python -m pytest -q
+	cd backend && $(PYTHON) -m pytest -q
 
 version:
 	@test -n "$(VERSION)" || (echo "Usage: make version VERSION=1.0.0" && exit 1)
