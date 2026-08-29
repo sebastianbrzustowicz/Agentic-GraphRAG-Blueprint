@@ -128,8 +128,7 @@ flowchart TD
 The repository ships with a runnable prototype: a FastAPI backend (`backend/`) and a React frontend (`frontend/`).
 
 ### Prerequisites
-- `OPENAI_API_KEY` in the root `.env` file
-- Input documents (TXT files) in `data/`
+- `OPENAI_API_KEY` in the root `.env` file (copy of `.env.example`)
 
 ### Run
 
@@ -140,40 +139,29 @@ docker compose up --build
 - Frontend UI: http://localhost:5173
 - Backend API: http://localhost:8000 (docs at `/docs`)
 
+To remove everything locally (containers, images, volumes):
+
+```bash
+docker compose down --rmi all -v --remove-orphans
+```
+
 ## Cloud Deployment
 
-The reference architecture deploys to Azure with Terraform, driven by a GitHub Actions workflow. No data is ingested in the cloud - the resources are provisioned empty and ready for you to load documents from the UI.
+The reference architecture deploys to Azure with Terraform. No data is ingested in the cloud - the resources are provisioned empty and ready for you to load documents from the UI.
 
-### 1. Bootstrap
-
-```bash
-make bootstrap
-```
-
-This creates the Terraform state backend (resource group, storage account, container) and a service principal, then prints the credentials to configure.
-
-### 2. Add GitHub secrets
-
-Store the printed values in **Settings → Secrets and variables → Actions**:
-
-- `ARM_CLIENT_ID`, `ARM_CLIENT_SECRET`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`
-- `TF_STATE_RG`, `TF_STATE_SA`
-
-### 3. Deploy
-
-Push the repository to GitHub (`main`). The workflow runs `terraform plan` + `terraform apply`, provisions the whole environment (resource group, Key Vault, ACR, Container Apps, Azure OpenAI, AI Search, Cosmos DB, Blob Storage), then builds and deploys the backend and frontend images to Container Apps.
-
-To deploy without GitHub Actions, run locally:
+### Local deployment
 
 ```bash
-make plan    # preview the changes
-make apply   # create or update the infrastructure
+make bootstrap   # creates the state backend and service principal
+make apply       # provisions the whole environment
 ```
 
-Teardown: `make destroy` removes the Terraform-managed resources; `make destroy-all` also removes the state backend and the service principal.
+Using GitHub Actions instead: run `make bootstrap`, copy the printed values into **Settings → Secrets and variables → Actions**, and push to `main` - the workflow provisions Azure and deploys the backend and frontend images.
+
+Teardown: `make destroy-all` removes all resources, the state backend, and the service principal.
 
 > [!NOTE]
-> Because the frontend uses Entra ID authentication, the service principal needs the `Application.ReadWrite.All` Graph permission (or the Application administrator role) in Entra ID before the first apply.
+> The frontend uses Entra ID authentication, so the service principal needs the `Application.ReadWrite.All` Graph permission before the first apply - `make bootstrap` grants it automatically.
 
 ## Citation
 
