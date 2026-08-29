@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import igraph as ig
 import leidenalg as la
-from openai import APIConnectionError, APITimeoutError, NotFoundError, RateLimitError
+from openai import APIConnectionError, APITimeoutError, BadRequestError, NotFoundError, RateLimitError
 
 from src.config import Config
 from src.progress import file_finished, file_started
@@ -22,6 +22,11 @@ BATCH_MARKER = "---CHUNK"
 logger = logging.getLogger(__name__)
 
 RETRYABLE = (NotFoundError, APIConnectionError, APITimeoutError, RateLimitError)
+
+# Some models (e.g. gpt-5.6-luna) only accept the default temperature and reject
+# temperature=0 with a 400. Once a model proves incompatible we remember it and
+# skip the parameter for the rest of the process.
+_NO_TEMP_MODELS: set[str] = set()
 
 
 def _retry_call(fn, *args, attempts: int = 4, delay: float = 1.0, **kwargs):
@@ -83,6 +88,15 @@ def _chat(client, model: str, system: str, user: str, json_mode: bool = False) -
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
+        if model not in _NO_TEMP_MODELS:
+            try:
+                response = _retry_call(client.chat.completions.create, **{**kwargs, "temperature": 0})
+                return response.choices[0].message.content or ""
+            except BadRequestError as exc:
+                if "temperature" not in str(exc).lower():
+                    raise
+                logger.info("model %s does not support temperature=0; using default", model)
+                _NO_TEMP_MODELS.add(model)
     response = _retry_call(client.chat.completions.create, **kwargs)
     return response.choices[0].message.content or ""
 
@@ -107,8 +121,26 @@ _EXTRACTION_SYSTEM = (
 )
 
 
-def extract_graph(client, model: str, chunk: str) -> tuple[list[dict], list[dict]]:
-    raw = _chat(client, model, _EXTRACTION_SYSTEM, chunk, json_mode=True)
+def _extraction_system(known_entities: set[str] | None = None) -> str:
+    system = _EXTRACTION_SYSTEM
+    if known_entities:
+        names = sorted(known_entities)[:150]
+        system += (
+            " Already-known entity names: "
+            + ", ".join(names)
+            + ". When you encounter one of these entities, reuse its exact already-known name"
+            " so the graph can link documents."
+        )
+    return system
+
+
+def extract_graph(
+    client,
+    model: str,
+    chunk: str,
+    known_entities: set[str] | None = None,
+) -> tuple[list[dict], list[dict]]:
+    raw = _chat(client, model, _extraction_system(known_entities), chunk, json_mode=True)
     data = _parse_json(raw)
     return data.get("entities", []), data.get("relations", [])
 
@@ -118,6 +150,7 @@ def extract_graph_batch(
     model: str,
     chunks: list[str],
     batch_size: int = 5,
+    known_entities: set[str] | None = None,
 ) -> list[tuple[list[dict], list[dict]]]:
     """Extract entities/relations for several chunks in a single LLM call.
 
@@ -126,7 +159,7 @@ def extract_graph_batch(
     caller can fall back to one call per chunk.
     """
     system = (
-        _EXTRACTION_SYSTEM
+        _extraction_system(known_entities)
         + " The user message contains several text chunks separated by '"
         + BATCH_MARKER
         + " <i>' markers. For EACH chunk return JSON only with the key 'chunks': "
@@ -157,15 +190,16 @@ def _extract_batch_with_fallback(
     client,
     model: str,
     batch: list[str],
+    known_entities: set[str] | None = None,
 ) -> list[tuple[list[dict], list[dict]]]:
     if len(batch) == 1:
         # Single chunk: skip the batch round-trip entirely.
-        return [extract_graph(client, model, batch[0])]
+        return [extract_graph(client, model, batch[0], known_entities)]
     try:
-        return extract_graph_batch(client, model, batch)
+        return extract_graph_batch(client, model, batch, known_entities=known_entities)
     except Exception as exc:
         logger.warning("batch extraction failed (%s); falling back to per-chunk calls", exc)
-        return [extract_graph(client, model, chunk) for chunk in batch]
+        return [extract_graph(client, model, chunk, known_entities) for chunk in batch]
 
 
 def _extract_file(
@@ -174,13 +208,14 @@ def _extract_file(
     chunks: list[str],
     batch_size: int,
     max_concurrency: int,
+    known_entities: set[str] | None = None,
 ) -> list[tuple[list[dict], list[dict]]]:
     """Extract all chunks of one file: batched LLM calls executed in parallel."""
     batches = [chunks[i : i + batch_size] for i in range(0, len(chunks), batch_size)]
     ordered: list[list[tuple[list[dict], list[dict]]]] = [None] * len(batches)  # type: ignore[list-item]
     with ThreadPoolExecutor(max_workers=max_concurrency) as executor:
         futures = {
-            executor.submit(_extract_batch_with_fallback, client, model, batch): index
+            executor.submit(_extract_batch_with_fallback, client, model, batch, known_entities): index
             for index, batch in enumerate(batches)
         }
         for future in as_completed(futures):
@@ -369,6 +404,7 @@ def run_ingestion(
                 chunks,
                 config.extract_batch_size,
                 config.max_concurrency,
+                known_entities,
             )
         else:
             extraction = []

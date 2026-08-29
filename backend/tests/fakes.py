@@ -121,6 +121,10 @@ class FakeOpenAI:
     def calls(self) -> int:
         return self.chat.completions.calls
 
+    @property
+    def last_system(self) -> str:
+        return self.chat.completions.last_system
+
 
 class _Chat:
     def __init__(self, content: str | dict, batched: bool) -> None:
@@ -131,6 +135,7 @@ class _Completions:
     def __init__(self, content: str | dict, batched: bool) -> None:
         self._batched = batched
         self.calls = 0
+        self.last_system = ""
         if isinstance(content, dict):
             content = json.dumps(content)
         self._content = content
@@ -139,6 +144,8 @@ class _Completions:
         self.calls += 1
         user = ""
         for message in kwargs.get("messages", []):
+            if message.get("role") == "system":
+                self.last_system = message.get("content", "")
             if message.get("role") == "user":
                 user = message.get("content", "")
         if self._batched and "---CHUNK" in user:

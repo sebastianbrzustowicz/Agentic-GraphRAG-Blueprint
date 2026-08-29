@@ -185,3 +185,13 @@ def test_run_ingestion_incremental_skips_unchanged_files(tmp_path, monkeypatch):
     assert third["relations"] == 0
     assert third["reports"] == 1  # only Gamma's community is regenerated
     assert gamma_fake.calls == 2  # extraction + one community report
+
+
+def test_extraction_receives_known_entity_hint():
+    fake = FakeOpenAI(ENTITY_PAYLOAD)
+    entities, _ = extract_graph(
+        fake, "gpt-test", "Alpha binds beta.", known_entities={"Alpha", "Beta"}
+    )
+    assert "Already-known entity names" in fake.last_system
+    assert "Alpha" in fake.last_system
+    assert entities[0]["name"] == "Alpha"

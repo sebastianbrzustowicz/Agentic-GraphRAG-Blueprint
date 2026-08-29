@@ -36,7 +36,7 @@ class Config:
     global_top_k: int = field(default_factory=lambda: int(os.getenv("GLOBAL_TOP_K", "5")))
     subgraph_radius: int = field(default_factory=lambda: int(os.getenv("SUBGRAPH_RADIUS", "1")))
     max_concurrency: int = field(default_factory=lambda: int(os.getenv("LLM_MAX_CONCURRENCY", "4")))
-    extract_batch_size: int = field(default_factory=lambda: int(os.getenv("EXTRACT_BATCH_SIZE", "3")))
+    extract_batch_size: int = field(default_factory=lambda: int(os.getenv("EXTRACT_BATCH_SIZE", "1")))
     embed_batch_size: int = field(default_factory=lambda: int(os.getenv("EMBED_BATCH_SIZE", "32")))
     force_reset: bool = field(default_factory=lambda: os.getenv("FORCE_RESET", "").lower() in ("1", "true", "yes"))
 
