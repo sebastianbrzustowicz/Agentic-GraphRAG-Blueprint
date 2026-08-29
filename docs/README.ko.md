@@ -192,7 +192,7 @@ make apply       # 전체 환경 프로비저닝
 
 GitHub Actions를 사용하는 경우: `make bootstrap`을 실행하고 출력된 값을 **Settings → Secrets and variables → Actions**에 복사한 뒤 `main`에 푸시합니다. 워크플로가 Azure를 프로비저닝하고 백엔드·프론트엔드 이미지를 배포합니다.
 
-일반적인 푸시는 lint & test 작업만 실행합니다. 커밋 메시지에 `[cloud]`를 추가하면 Terraform도 실행되어 Azure에 배포됩니다. `[skip ci]`는 파이프라인 전체를 건너뛰고, 문서 전용 변경(`README.md`, `images/`, `data/`, `Makefile`, `frontend/package.json`의 버전 변경)은 자동으로 필터링됩니다. 수동 배포는 Actions 탭의 **Run workflow** 버튼을 사용하세요.
+일반적인 푸시는 lint & test 작업만 실행합니다. 커밋 메시지에 `[cloud]`를 추가하면 Terraform도 실행되어 Azure에 배포됩니다. `[skip ci]`는 파이프라인 전체를 건너뛰고, 문서 전용 변경(`README.md`, `images/`, `data/`, `Makefile`)은 자동으로 필터링됩니다. 수동 배포는 Actions 탭의 **Run workflow** 버튼을 사용하세요.
 
 정리: `make destroy-all`은 모든 리소스, 상태 백엔드, service principal을 삭제합니다.
 

@@ -192,7 +192,7 @@ make apply       # provisioniert die gesamte Umgebung
 
 Alternativ über GitHub Actions: `make bootstrap` ausführen, die ausgegebenen Werte in **Settings → Secrets and variables → Actions** kopieren und auf `main` pushen - der Workflow provisioniert Azure und stellt die Backend- und Frontend-Images bereit.
 
-Ein normaler Push führt nur den Lint-&-Test-Job aus. `[cloud]` im Commit-Text führt zusätzlich Terraform aus und stellt auf Azure bereit; `[skip ci]` überspringt die Pipeline komplett, und reine Dokumentänderungen (`README.md`, `images/`, `data/`, `Makefile`, Versionsänderungen in `frontend/package.json`) werden automatisch herausgefiltert. Verwenden Sie den Button **Run workflow** im Actions-Tab, um manuell bereitzustellen.
+Ein normaler Push führt nur den Lint-&-Test-Job aus. `[cloud]` im Commit-Text führt zusätzlich Terraform aus und stellt auf Azure bereit; `[skip ci]` überspringt die Pipeline komplett, und reine Dokumentänderungen (`README.md`, `images/`, `data/`, `Makefile`) werden automatisch herausgefiltert. Verwenden Sie den Button **Run workflow** im Actions-Tab, um manuell bereitzustellen.
 
 Teardown: `make destroy-all` entfernt alle Ressourcen, das State-Backend und den Service Principal.
 

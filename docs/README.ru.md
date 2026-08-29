@@ -192,7 +192,7 @@ make apply       # провижинит всё окружение
 
 Вместо этого через GitHub Actions: выполните `make bootstrap`, скопируйте выведенные значения в **Settings → Secrets and variables → Actions** и запушьте в `main` — workflow провижинит Azure и развернёт образы бэкенда и фронтенда.
 
-Обычный push запускает только задачу lint & test. Добавление `[cloud]` в сообщение коммита также запускает Terraform и развёртывает на Azure; `[skip ci]` пропускает конвейер целиком, а изменения только в документации (`README.md`, `images/`, `data/`, `Makefile`, изменения версии в `frontend/package.json`) фильтруются автоматически. Используйте кнопку **Run workflow** на вкладке Actions для ручного развёртывания.
+Обычный push запускает только задачу lint & test. Добавление `[cloud]` в сообщение коммита также запускает Terraform и развёртывает на Azure; `[skip ci]` пропускает конвейер целиком, а изменения только в документации (`README.md`, `images/`, `data/`, `Makefile`) фильтруются автоматически. Используйте кнопку **Run workflow** на вкладке Actions для ручного развёртывания.
 
 Удаление: `make destroy-all` удаляет все ресурсы, state backend и service principal.
 

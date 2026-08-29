@@ -192,7 +192,7 @@ make apply       # aprovisiona todo el entorno
 
 Con GitHub Actions en su lugar: ejecuta `make bootstrap`, copia los valores impresos en **Settings → Secrets and variables → Actions** y haz push a `main`; el workflow aprovisiona Azure y despliega las imágenes del backend y el frontend.
 
-Un push normal ejecuta solo el trabajo de lint y test. Añadir `[cloud]` al mensaje de commit también ejecuta Terraform y despliega en Azure; `[skip ci]` omite el pipeline por completo, y los cambios solo de documentación (`README.md`, `images/`, `data/`, `Makefile`, cambios de versión en `frontend/package.json`) se filtran automáticamente. Usa el botón **Run workflow** en la pestaña Actions para desplegar manualmente.
+Un push normal ejecuta solo el trabajo de lint y test. Añadir `[cloud]` al mensaje de commit también ejecuta Terraform y despliega en Azure; `[skip ci]` omite el pipeline por completo, y los cambios solo de documentación (`README.md`, `images/`, `data/`, `Makefile`) se filtran automáticamente. Usa el botón **Run workflow** en la pestaña Actions para desplegar manualmente.
 
 Teardown: `make destroy-all` elimina todos los recursos, el backend de estado y el service principal.
 

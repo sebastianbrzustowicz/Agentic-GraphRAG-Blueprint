@@ -192,7 +192,7 @@ make apply       # provisionuje całe środowisko
 
 Alternatywnie przez GitHub Actions: uruchom `make bootstrap`, skopiuj wypisane wartości do **Settings → Secrets and variables → Actions** i wypchnij na `main` - workflow provisionuje Azure i wdraża obrazy backendu i frontendu.
 
-Zwykły push uruchamia tylko zadanie lint & test. Dodanie `[cloud]` do treści commita uruchamia również Terraform i wdraża na Azure; `[skip ci]` pomija pipeline w całości, a zmiany tylko dokumentacyjne (`README.md`, `images/`, `data/`, `Makefile`, zmiany wersji w `frontend/package.json`) są filtrowane automatycznie. Użyj przycisku **Run workflow** w zakładce Actions, aby wdrożyć ręcznie.
+Zwykły push uruchamia tylko zadanie lint & test. Dodanie `[cloud]` do treści commita uruchamia również Terraform i wdraża na Azure; `[skip ci]` pomija pipeline w całości, a zmiany tylko dokumentacyjne (`README.md`, `images/`, `data/`, `Makefile`) są filtrowane automatycznie. Użyj przycisku **Run workflow** w zakładce Actions, aby wdrożyć ręcznie.
 
 Teardown: `make destroy-all` usuwa wszystkie zasoby, backend stanu i service principal.
 
