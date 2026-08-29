@@ -6,6 +6,9 @@ SA_NAME ?= sttfstate$(SUB_SHORT)
 APP_RG_NAME ?= rg-agentic-graphrag-dev
 SP_NAME ?= sp-github-graphrag-infra
 
+-include infrastructure/terraform/.env
+export
+
 .PHONY: bootstrap apply ingest destroy clean-state destroy-all
 
 bootstrap:
