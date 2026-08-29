@@ -60,10 +60,11 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
         setProgress(p);
         if (p.running) {
           sawRunning.current = true;
-          if (p.total_files > 0) {
+          const toProcess = p.to_process > 0 ? p.to_process : p.total_files;
+          if (toProcess > 0) {
             const done = p.processed_files;
             const currentLine = p.current_file ? ` · now: ${p.current_file}` : "";
-            setStatus(`Processing ${done + 1}/${p.total_files} - ${done} file(s) done${currentLine}`);
+            setStatus(`Processing ${Math.min(done + 1, toProcess)}/${toProcess} - ${done} file(s) done${currentLine}`);
           }
         } else if (sawRunning.current) {
           // ingestion finished (or failed)
@@ -75,8 +76,10 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
             setStatus(null);
           } else if (p.result) {
             const r = p.result;
+            const skipped = Math.max(0, p.total_files - p.processed_files);
+            const skippedLine = skipped > 0 ? ` · ${skipped} unchanged file(s) skipped` : "";
             setStatus(
-              `Ingestion finished: ${r.entities} entities, ${r.relations} relations, ${r.chunks} chunks, ${r.communities} communities.`
+              `Ingestion finished: ${r.entities} entities, ${r.relations} relations, ${r.chunks} chunks, ${r.communities} communities.${skippedLine}`
             );
           } else {
             setStatus("Ingestion finished.");
@@ -172,9 +175,9 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
             {error}
           </Alert>
         ) : null}
-        {progress && progress.running && progress.total_files > 0 ? (
+        {progress && progress.running && progress.to_process > 0 ? (
           <Typography level="body-xs" color="neutral" sx={{ mt: 0.5 }}>
-            {progress.processed_files} of {progress.total_files} files processed
+            {progress.processed_files} of {progress.to_process} files processed
           </Typography>
         ) : null}
         {progress && progress.files && progress.files.length > 0 ? (

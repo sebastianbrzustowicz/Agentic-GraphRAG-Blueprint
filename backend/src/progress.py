@@ -4,6 +4,7 @@ _lock = threading.Lock()
 _state = {
     "running": False,
     "total_files": 0,
+    "to_process": 0,
     "processed_files": 0,
     "current_file": "",
     "files": [],
@@ -12,11 +13,12 @@ _state = {
 }
 
 
-def start(total_files: int, files: list[str]) -> None:
+def start(total_files: int, files: list[str], to_process: int | None = None) -> None:
     with _lock:
         _state.update(
             running=True,
             total_files=total_files,
+            to_process=total_files if to_process is None else to_process,
             processed_files=0,
             current_file="",
             files=files,

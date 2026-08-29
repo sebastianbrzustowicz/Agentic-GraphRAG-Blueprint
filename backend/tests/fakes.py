@@ -103,26 +103,59 @@ class FakeVectorStore(AbstractVectorStore):
     def reset(self) -> None:
         self._documents = []
 
+    def delete(self, ids: list[str]) -> None:
+        self._documents = [doc for doc in self._documents if doc["id"] not in set(ids)]
+
 
 class FakeOpenAI:
-    """Minimal OpenAI client stand-in returning canned chat completions."""
+    """Minimal OpenAI client stand-in returning canned chat completions.
 
-    def __init__(self, chat_content: str | dict) -> None:
-        self.chat = _Chat(chat_content)
+    In ``batched`` mode the response is generated from the request: one chunk entry
+    per ``---CHUNK`` marker found in the user message.
+    """
+
+    def __init__(self, chat_content: str | dict, batched: bool = False) -> None:
+        self.chat = _Chat(chat_content, batched)
+
+    @property
+    def calls(self) -> int:
+        return self.chat.completions.calls
 
 
 class _Chat:
-    def __init__(self, content: str | dict) -> None:
-        self.completions = _Completions(content)
+    def __init__(self, content: str | dict, batched: bool) -> None:
+        self.completions = _Completions(content, batched)
 
 
 class _Completions:
-    def __init__(self, content: str | dict) -> None:
+    def __init__(self, content: str | dict, batched: bool) -> None:
+        self._batched = batched
+        self.calls = 0
         if isinstance(content, dict):
             content = json.dumps(content)
         self._content = content
 
-    def create(self, **kwargs: Any) -> SimpleNamespace:  # noqa: ARG002 - canned response
+    def create(self, **kwargs: Any) -> SimpleNamespace:
+        self.calls += 1
+        user = ""
+        for message in kwargs.get("messages", []):
+            if message.get("role") == "user":
+                user = message.get("content", "")
+        if self._batched and "---CHUNK" in user:
+            count = user.count("---CHUNK")
+            payload = {
+                "chunks": [
+                    {
+                        "chunk_index": index,
+                        "entities": [{"name": f"Entity{index}", "type": "protein", "description": f"desc {index}"}],
+                        "relations": [],
+                    }
+                    for index in range(count)
+                ]
+            }
+            content = json.dumps(payload)
+        else:
+            content = self._content
         return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content=self._content))]
+            choices=[SimpleNamespace(message=SimpleNamespace(content=content))]
         )

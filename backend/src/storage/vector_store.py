@@ -103,6 +103,10 @@ class ChromaVectorStore(AbstractVectorStore):
     def count(self) -> int:
         return self._collection.count()
 
+    def delete(self, ids: list[str]) -> None:
+        if ids:
+            self._collection.delete(ids=ids)
+
     def reset(self) -> None:
         try:
             self._client.delete_collection(self.COLLECTION_NAME)

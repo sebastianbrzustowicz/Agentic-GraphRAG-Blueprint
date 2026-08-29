@@ -118,7 +118,7 @@ flowchart TD
 ```
 ## Core Features
 
-- Incremental ingestion: New documents are chunked, extracted into entities and relations, and merged into the knowledge graph without re-processing existing files. Louvain re-clustering runs in memory, and community reports are regenerated only for affected communities, keeping LLM token costs low as the corpus grows.
+- Incremental ingestion: New documents are chunked, extracted into entities and relations, and merged into the knowledge graph without re-processing existing files. Leiden re-clustering runs in memory, and community reports are regenerated only for affected communities, keeping LLM token costs low as the corpus grows.
 
 - Hybrid retrieval: Each query can use Local Search (vector search plus entity-level graph traversal for detailed, fact-level answers) or Global Search (map-reduce summarization over community reports for cross-document synthesis).
 

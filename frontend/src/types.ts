@@ -35,6 +35,7 @@ export interface IngestStats {
 export interface IngestProgress {
   running: boolean;
   total_files: number;
+  to_process: number;
   processed_files: number;
   current_file: string;
   files: string[];

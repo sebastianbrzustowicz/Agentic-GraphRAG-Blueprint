@@ -10,14 +10,20 @@ from src.progress import (
 
 
 def test_start_resets_state():
-    start(3, ["a.txt", "b.txt", "c.txt"])
+    start(3, ["a.txt", "b.txt", "c.txt"], to_process=2)
     state = snapshot()
     assert state["running"] is True
     assert state["total_files"] == 3
+    assert state["to_process"] == 2
     assert state["processed_files"] == 0
     assert state["files"] == ["a.txt", "b.txt", "c.txt"]
     assert state["result"] is None
     assert state["error"] is None
+
+
+def test_start_defaults_to_process_to_total():
+    start(3, ["a.txt", "b.txt", "c.txt"])
+    assert snapshot()["to_process"] == 3
 
 
 def test_file_lifecycle():

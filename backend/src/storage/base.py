@@ -59,3 +59,6 @@ class AbstractVectorStore(ABC):
 
     @abstractmethod
     def reset(self) -> None: ...
+
+    @abstractmethod
+    def delete(self, ids: list[str]) -> None: ...
