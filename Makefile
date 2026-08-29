@@ -6,6 +6,8 @@ SA_NAME ?= sttfstate$(SUB_SHORT)
 APP_RG_NAME ?= rg-agentic-graphrag-dev
 SP_NAME ?= sp-github-graphrag-infra
 
+README_FILES := README.md $(wildcard docs/README.*.md)
+
 # Prefer the project virtualenv when present; fall back to the system python.
 VENV_PY := $(CURDIR)/.venv/bin/python
 PYTHON := $(if $(wildcard $(VENV_PY)),$(VENV_PY),python)
@@ -45,10 +47,11 @@ test:
 version:
 	@test -n "$(VERSION)" || (echo "Usage: make version VERSION=1.0.0" && exit 1)
 	@sed -i 's/"version": ".*"/"version": "$(VERSION)"/' frontend/package.json
-	@sed -i 's/(Version [0-9][^)]*)/(Version $(VERSION))/' README.md
-	@sed -i 's/version = {[^}]*}/version = {$(VERSION)}/' README.md
-	@sed -i 's|badge/version-[^-]*-blue|badge/version-$(VERSION)-blue|' README.md
-	@echo "Version $(VERSION) applied to frontend/package.json and README.md"
+	@for f in $(README_FILES); do \
+		sed -i 's/(Version [0-9][^)]*)/(Version $(VERSION))/' $$f; \
+		sed -i 's/version = {[^}]*}/version = {$(VERSION)}/' $$f; \
+	done
+	@echo "Version $(VERSION) applied to frontend/package.json and all README files"
 
 ingest:
 	curl -s -X POST http://localhost:8000/ingest

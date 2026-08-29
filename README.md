@@ -1,6 +1,16 @@
-## Agentic GraphRAG Blueprint
+<p align="center">
+  <strong>English</strong> ·
+  <a href="docs/README.zh-CN.md">中文</a> ·
+  <a href="docs/README.pl.md">Polski</a> ·
+  <a href="docs/README.es.md">Español</a> ·
+  <a href="docs/README.ja.md">日本語</a> ·
+  <a href="docs/README.ko.md">한국어</a> ·
+  <a href="docs/README.ru.md">Русский</a> ·
+  <a href="docs/README.fr.md">Français</a> ·
+  <a href="docs/README.de.md">Deutsch</a>
+</p>
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+## Agentic GraphRAG Blueprint
 
 A reference architecture for an Agentic GraphRAG (Knowledge Graph + Vector Search) solution deployed on Microsoft Azure using Terraform (IaC), FastAPI, and React.
 
@@ -11,7 +21,7 @@ It is most useful in knowledge-heavy domains where answers depend on cross-docum
 The design aims to fit into the future. The agentic local/global search routing adapts to the complexity of each question. The store abstractions (`AbstractGraphStore`, `AbstractVectorStore`) keep the vector and graph backends swappable as needs evolve. The whole stack is defined in Terraform with a CI/CD pipeline, so moving from prototype to a scalable deployment on Azure is possible. As document corpora keep growing and LLM costs keep falling, knowledge-graph-based retrieval is where RAG is headed.
 
 <div align="center">
-  <img src="images/app_dark.png" alt="Agentic GraphRAG application UI" width="800px" style="border-radius: 8px; height: auto;" />
+  <img src="images/app_dark.png" alt="Agentic GraphRAG application UI" width="850px" style="border-radius: 8px; height: auto;" />
   <p><em>The Agentic GraphRAG application UI</em></p>
 </div>
 
@@ -86,7 +96,7 @@ flowchart TD
         A["Source Documents<br/>(TXT files in data/)"] --> B["1. Text Chunking<br/>code / static (cheap)"]
         B --> C["2. Entity & Relationship Extraction<br/>LLM (expensive)"]
         C --> D["3. Knowledge Graph Construction<br/>graph store, NetworkX (cheap)"]
-        D --> E["4. Community Detection (Louvain)<br/>graph algorithm, in-memory (cheap)"]
+        D --> E["4. Community Detection (Leiden)<br/>graph algorithm, in-memory (cheap)"]
         E --> F["5. Community Reports Generation<br/>LLM (expensive)"]
         F --> G["6. Vectorization of Chunks, Entities & Reports<br/>embedding model (cheap)"]
     end
@@ -116,6 +126,24 @@ flowchart TD
     classDef cheap fill:#e8f5e9,stroke:#2e7d32,stroke-width:1.5px,color:#1b5e20;
     classDef expensive fill:#fdecea,stroke:#c62828,stroke-width:1.5px,color:#b71c1c;
 ```
+
+### Cost & Complexity at a Glance
+
+LLM calls dominate the cost; local steps (chunking, graph algorithms, embeddings) are effectively free at this scale.
+
+| Step | Cost driver | Relative cost |
+|---|---|---|
+| Chunking | CPU, O(chars) | negligible |
+| Entity & relation extraction | LLM tokens, one call per chunk | high (main cost) |
+| Graph construction | CPU, in-memory | negligible |
+| Community detection (Leiden) | CPU, ~linear in edges | negligible |
+| Community reports | LLM tokens, per community | high |
+| Embeddings | tokens + API calls, batched | low |
+| Local query | 1 LLM synthesis call | low |
+| Global query | LLM map-reduce cascade | medium-high |
+
+- **Ingestion cost scales with the number of *changed* files**, not the corpus: unchanged documents are skipped via content hashing, and community reports are regenerated only for affected communities.
+- **Query cost scales with the question**, not the corpus size: `local` costs ~1 LLM call, `global` a small map-reduce cascade over the most relevant reports.
 ## Core Features
 
 - Incremental ingestion: New documents are chunked, extracted into entities and relations, and merged into the knowledge graph without re-processing existing files. Leiden re-clustering runs in memory, and community reports are regenerated only for affected communities, keeping LLM token costs low as the corpus grows.
@@ -169,6 +197,14 @@ Teardown: `make destroy-all` removes all resources, the state backend, and the s
 
 > [!NOTE]
 > The frontend uses Entra ID authentication, so the service principal needs the `Application.ReadWrite.All` Graph permission before the first apply - `make bootstrap` grants it automatically.
+
+## Future Potential Improvements
+
+The architecture deliberately leaves headroom for changes that become worthwhile as model costs keep falling and context windows keep growing:
+
+- **Semantic entity resolution** - today entities are merged when the model reuses the same name. Cheaper models will make a dedicated resolution pass (synonyms, acronyms, transliterations) affordable, merging far more nodes across documents.
+- **Query decomposition & multi-hop reasoning** - split complex questions into sub-queries answered against different graph regions, then synthesize. More LLM calls per query, but dramatically better answers to compound questions.
+- **Evaluation harness** - an offline benchmark (question sets + reference answers) to quantify how extraction, retrieval and prompt changes affect answer quality.
 
 ## Citation
 
