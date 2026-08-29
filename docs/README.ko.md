@@ -212,7 +212,7 @@ GitHub Actions를 사용하는 경우: `make bootstrap`을 실행하고 출력�
 이 리포지토리가 연구에 도움이 되었다면 자유롭게 인용해 주세요:
 
 **APA 스타일**
-> Brzustowicz, S. (2026). Agentic GraphRAG Blueprint: knowledge graphs and vector search for agentic question answering (Version 1.0.0) [Source code]. https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint
+> Brzustowicz, S. (2026). Agentic GraphRAG Blueprint: knowledge graphs and vector search for agentic question answering (Version 1.0.1) [Source code]. https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint
 
 **BibTeX**
 ```bibtex
@@ -220,7 +220,7 @@ GitHub Actions를 사용하는 경우: `make bootstrap`을 실행하고 출력�
   author = {Sebastian Brzustowicz},
   title = {Agentic GraphRAG Blueprint: knowledge graphs and vector search for agentic question answering},
   url = {https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint},
-  version = {1.0.0},
+  version = {1.0.1},
   year = {2026}
 }
 ```

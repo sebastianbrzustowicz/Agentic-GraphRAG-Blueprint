@@ -212,7 +212,7 @@ Die Architektur lässt bewusst Spielraum für Änderungen, die sich lohnen, soba
 Wenn Ihnen dieses Repository bei Ihrer Forschung geholfen hat, können Sie es gerne zitieren:
 
 **APA-Stil**
-> Brzustowicz, S. (2026). Agentic GraphRAG Blueprint: knowledge graphs and vector search for agentic question answering (Version 1.0.0) [Source code]. https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint
+> Brzustowicz, S. (2026). Agentic GraphRAG Blueprint: knowledge graphs and vector search for agentic question answering (Version 1.0.1) [Source code]. https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint
 
 **BibTeX**
 ```bibtex
@@ -220,7 +220,7 @@ Wenn Ihnen dieses Repository bei Ihrer Forschung geholfen hat, können Sie es ge
   author = {Sebastian Brzustowicz},
   title = {Agentic GraphRAG Blueprint: knowledge graphs and vector search for agentic question answering},
   url = {https://github.com/sebastianbrzustowicz/Agentic-GraphRAG-Blueprint},
-  version = {1.0.0},
+  version = {1.0.1},
   year = {2026}
 }
 ```
