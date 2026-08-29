@@ -52,4 +52,4 @@ def stop() -> None:
 
 def snapshot() -> dict:
     with _lock:
-        return dict(_state)
+        return {**_state, "files": list(_state["files"])}

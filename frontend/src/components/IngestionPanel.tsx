@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Alert from "@mui/joy/Alert";
 import Box from "@mui/joy/Box";
 import Button from "@mui/joy/Button";
@@ -7,7 +7,6 @@ import CardContent from "@mui/joy/CardContent";
 import LinearProgress from "@mui/joy/LinearProgress";
 import List from "@mui/joy/List";
 import ListItem from "@mui/joy/ListItem";
-import Stack from "@mui/joy/Stack";
 import Typography from "@mui/joy/Typography";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { errorMessage, fetchProgress, fetchStats, runIngest, uploadFiles } from "../api";
@@ -30,7 +29,7 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
 
   const busy = phase !== "idle";
 
-  const refreshStats = async () => {
+  const refreshStats = useCallback(async () => {
     try {
       const current = await fetchStats();
       setStats(current);
@@ -38,11 +37,11 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Stats request failed");
     }
-  };
+  }, [onStatsChange]);
 
   useEffect(() => {
     refreshStats().catch(() => undefined);
-  }, []);
+  }, [refreshStats]);
 
   // While ingestion is running, poll /stats and /progress a few times per
   // second so the numbers update live and per-file progress is visible.
@@ -90,7 +89,7 @@ export default function IngestionPanel({ onStatsChange }: IngestionPanelProps) {
     };
     const timer = setInterval(poll, 3000);
     return () => clearInterval(timer);
-  }, [phase, onStatsChange]);
+  }, [phase, refreshStats, onStatsChange]);
 
   const process = async () => {
     if (busy) {

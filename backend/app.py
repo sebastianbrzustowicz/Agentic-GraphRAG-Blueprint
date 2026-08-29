@@ -6,20 +6,26 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-logger = logging.getLogger("graphrag")
-
 from src.config import Config
 from src.ingestion import run_ingestion
 from src.progress import (
     set_error as progress_set_error,
+)
+from src.progress import (
     set_result as progress_set_result,
+)
+from src.progress import (
     snapshot as progress_snapshot,
+)
+from src.progress import (
     stop as progress_stop,
 )
 from src.search import global_search, local_search
 from src.storage.graph_store import NetworkXGraphStore
 from src.storage.vector_store import ChromaVectorStore
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger("graphrag")
 
 config = Config()
 graph_store = NetworkXGraphStore()

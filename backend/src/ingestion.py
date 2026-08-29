@@ -10,7 +10,8 @@ import networkx as nx
 from openai import APIConnectionError, APITimeoutError, NotFoundError, RateLimitError
 
 from src.config import Config
-from src.progress import file_finished, file_started, start as progress_start
+from src.progress import file_finished, file_started
+from src.progress import start as progress_start
 from src.storage.base import AbstractGraphStore, AbstractVectorStore
 
 CHARS_PER_TOKEN = 4
@@ -154,7 +155,12 @@ def run_ingestion(
             text = handle.read()
         chunks = chunk_text(text, config.chunk_size, config.chunk_overlap)
         if not chunks:
-            logger.warning("file %s produced no chunks (size=%d bytes, read=%d chars)", path, os.path.getsize(path), len(text))
+            logger.warning(
+                "file %s produced no chunks (size=%d bytes, read=%d chars)",
+                path,
+                os.path.getsize(path),
+                len(text),
+            )
         else:
             logger.info("chunked %s into %d chunks", path, len(chunks))
         for chunk_index, chunk in enumerate(chunks):

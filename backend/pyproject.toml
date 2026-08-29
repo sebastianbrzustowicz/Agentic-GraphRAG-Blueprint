@@ -1,0 +1,13 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = [
+    "B008",  # FastAPI idioms like `file: UploadFile = File(...)` in defaults
+    "BLE001",  # broad `except Exception` is intentional around LLM calls: log and continue
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

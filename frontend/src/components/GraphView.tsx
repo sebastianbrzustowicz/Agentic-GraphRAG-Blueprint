@@ -52,7 +52,7 @@ export default function GraphView({ subgraph, selectedNodeId, onNodeClick }: Gra
         ...edge,
       })),
     }),
-    [subgraph]
+    [subgraph, linkColor]
   );
 
   useEffect(() => {

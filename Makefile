@@ -9,7 +9,7 @@ SP_NAME ?= sp-github-graphrag-infra
 -include infrastructure/terraform/.env
 export
 
-.PHONY: bootstrap plan apply ingest destroy clean-state destroy-all version
+.PHONY: bootstrap plan apply ingest destroy clean-state destroy-all version lint test quality
 
 bootstrap:
 	chmod +x ./infrastructure/bootstrap/init-tf-state.sh
@@ -28,6 +28,15 @@ apply:
 		-backend-config="storage_account_name=$(SA_NAME)" \
 		-backend-config="container_name=$(CONTAINER_NAME)" \
 		-backend-config="key=terraform.tfstate" && terraform apply -auto-approve
+
+quality: lint test
+
+lint:
+	cd backend && python -m ruff check .
+	cd frontend && npm run lint
+
+test:
+	cd backend && python -m pytest -q
 
 version:
 	@test -n "$(VERSION)" || (echo "Usage: make version VERSION=1.0.0" && exit 1)
